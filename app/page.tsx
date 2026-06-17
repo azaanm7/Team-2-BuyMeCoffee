@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { PageButtons } from "./components/PageButtons";
 import Header from "./components/Header";
 
