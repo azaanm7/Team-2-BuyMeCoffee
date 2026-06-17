@@ -70,14 +70,32 @@ export default function PaymentPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+
     setIsLoading(true);
-    setTimeout(() => {
+
+    const res = await fetch("/api/bankcard", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        country,
+        firstName,
+        lastName,
+        cardNumber: cardNumber.replace(/\s/g, ""),
+        month,
+        year,
+      }),
+    });
+
+    if (res.ok) {
+      router.push("/home");
+    } else {
+      const data = await res.json();
+      console.error("Failed to save payment:", data.error);
       setIsLoading(false);
-      router.push("/dashboard");
-    }, 2000);
+    }
   };
 
   if (isLoading) {

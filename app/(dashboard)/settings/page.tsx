@@ -135,10 +135,20 @@ export default function AccountSettings() {
     return Object.keys(e).length === 0;
   };
 
-  const handlePersonalSubmit = (e: React.FormEvent) => {
+  const handlePersonalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validatePersonal())
-      console.log("Personal saved", { photo, name, about, socialUrl });
+    if (!validatePersonal()) return;
+
+    await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        about,
+        avatarImage: photo,
+        socialMediaURL: socialUrl,
+      }),
+    });
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
