@@ -12,7 +12,7 @@ export const PageButtons = () => {
   ];
 
   return (
-    <aside className="w-56 fixed left-0 top-16 h-[calc(100vh-64px)] bg-white p-3 flex flex-col gap-1 font-sans">
+    <aside className="w-56  left-0 top-16 h-[calc(100vh-64px)] p-3 flex flex-col gap-1 font-sans">
       {menuItems.map((item) => (
         <SidebarItem
           key={item.label}
