@@ -41,9 +41,27 @@ export default function ProfilePage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) router.push("/payment");
+    if (!validate()) return;
+
+    const res = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        about,
+        avatarImage: photo,
+        socialMediaURL: socialUrl,
+      }),
+    });
+
+    if (res.ok) {
+      router.push("/payment");
+    } else {
+      const data = await res.json();
+      console.error("Failed to save profile:", data.error);
+    }
   };
 
   return (
