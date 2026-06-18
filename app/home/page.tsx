@@ -9,7 +9,6 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
-  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -154,7 +153,6 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4">
-      {/* Profile card */}
       <div className="rounded-xl border bg-card p-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
@@ -174,7 +172,6 @@ export default function HomePage() {
         </Button>
       </div>
 
-      {/* Earnings card */}
       <div className="rounded-xl border bg-card p-5 space-y-2">
         <div className="flex items-center gap-3">
           <p className="text-sm font-medium">Earnings</p>
@@ -192,12 +189,10 @@ export default function HomePage() {
         <p className="text-4xl font-bold tracking-tight">${earnings}</p>
       </div>
 
-      {/* Recent transactions */}
       <div className="rounded-xl border bg-card">
         <div className="flex items-center justify-between px-5 py-3 border-b">
           <p className="text-sm font-semibold">Recent transactions</p>
 
-          {/* Amount filter dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8">
@@ -226,7 +221,6 @@ export default function HomePage() {
 
         <div className="px-5">
           {filtered.length === 0 ? (
-            // Empty state
             <div className="py-16 flex flex-col items-center gap-3 text-center">
               <div className="h-12 w-12 rounded-full border-2 flex items-center justify-center">
                 <Heart className="h-5 w-5 text-muted-foreground" />
