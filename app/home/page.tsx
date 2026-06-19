@@ -87,7 +87,6 @@ const AMOUNT_OPTIONS = [1, 2, 5, 10];
 function TransactionRow({ tx }: { tx: Transaction }) {
   const [expanded, setExpanded] = useState(false);
   const TRUNCATE_LENGTH = 120;
-
   const isLong = tx.message && tx.message.length > TRUNCATE_LENGTH;
   const displayMessage =
     isLong && !expanded
@@ -95,35 +94,37 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       : tx.message;
 
   return (
-    <div className="py-4 border-b last:border-0">
+    <div className="py-4 border-b last:border-0 border-gray-100">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
             {tx.avatarUrl ? (
               <AvatarImage src={tx.avatarUrl} alt={tx.name} />
             ) : null}
-            <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
+            <AvatarFallback className="bg-gray-100 text-gray-500 text-xs font-medium">
               CN
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium leading-none">{tx.name}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{tx.source}</p>
+            <p className="text-sm font-medium leading-none text-gray-900">
+              {tx.name}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">{tx.source}</p>
           </div>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-sm font-semibold">+ ${tx.amount}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{tx.time}</p>
+          <p className="text-sm font-semibold text-gray-900">+ ${tx.amount}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{tx.time}</p>
         </div>
       </div>
 
       {tx.message && (
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+        <p className="text-sm text-gray-500 mt-2 leading-relaxed">
           {displayMessage}{" "}
           {isLong && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="font-semibold text-foreground underline underline-offset-2 hover:no-underline"
+              className="font-semibold text-gray-900 underline underline-offset-2 hover:no-underline"
             >
               {expanded ? "Show less" : "Show more"}
             </button>
@@ -153,30 +154,38 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border bg-card p-5 flex items-center justify-between">
+      {/* Profile card */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
             <AvatarImage src="/avatar-jake.png" alt="Jake" />
-            <AvatarFallback>JK</AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-blue-400 text-white font-medium">
+              JK
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-sm">Jake</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="font-semibold text-sm text-gray-900">Jake</p>
+            <p className="text-xs text-gray-400">
               buymeacoffee.com/baconpancakes1
             </p>
           </div>
         </div>
-        <Button variant="default" size="sm" className="gap-2">
+        <Button
+          variant="default"
+          size="sm"
+          className="gap-2 bg-gray-900 hover:bg-gray-700 text-white rounded-lg"
+        >
           <Copy className="h-3.5 w-3.5" />
           Share page link
         </Button>
       </div>
 
-      <div className="rounded-xl border bg-card p-5 space-y-2">
+      {/* Earnings card */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-2">
         <div className="flex items-center gap-3">
-          <p className="text-sm font-medium">Earnings</p>
+          <p className="text-sm font-medium text-gray-900">Earnings</p>
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-36 h-8 text-xs">
+            <SelectTrigger className="w-36 h-8 text-xs border-gray-200 rounded-lg">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -186,20 +195,32 @@ export default function HomePage() {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-4xl font-bold tracking-tight">${earnings}</p>
+        <p className="text-4xl font-bold tracking-tight text-gray-900">
+          ${earnings}
+        </p>
       </div>
 
-      <div className="rounded-xl border bg-card">
-        <div className="flex items-center justify-between px-5 py-3 border-b">
-          <p className="text-sm font-semibold">Recent transactions</p>
+      {/* Recent transactions — no outer border, sits on gray bg */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-gray-900">
+            Recent transactions
+          </p>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs h-8">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs h-8 text-gray-500 hover:text-gray-900"
+              >
                 <ChevronDown className="h-3.5 w-3.5" />
                 Amount
                 {selectedAmounts.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 px-1.5 text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 px-1.5 text-xs bg-gray-100 text-gray-700"
+                  >
                     {selectedAmounts.map((a) => `$${a}`).join(", ")}
                   </Badge>
                 )}
@@ -219,17 +240,18 @@ export default function HomePage() {
           </DropdownMenu>
         </div>
 
-        <div className="px-5">
+        {/* Transactions list — white card */}
+        <div className="rounded-xl border border-gray-200 bg-white px-5">
           {filtered.length === 0 ? (
             <div className="py-16 flex flex-col items-center gap-3 text-center">
-              <div className="h-12 w-12 rounded-full border-2 flex items-center justify-center">
-                <Heart className="h-5 w-5 text-muted-foreground" />
+              <div className="h-12 w-12 rounded-full border-2 border-gray-200 flex items-center justify-center">
+                <Heart className="h-5 w-5 text-gray-400" />
               </div>
               <div>
-                <p className="text-sm font-semibold">
+                <p className="text-sm font-semibold text-gray-900">
                   You don&apos;t have any supporters yet
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Share your page with your audience to get started.
                 </p>
               </div>

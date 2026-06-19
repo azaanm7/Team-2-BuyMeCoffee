@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 import Image from "next/image";
 
@@ -10,25 +11,8 @@ export default function TopBar({ userName, userImage }: TopBarProps) {
   return (
     <header className="flex items-center justify-between px-6 h-14 bg-white border-b border-gray-200">
       <div className="flex items-center gap-2">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
-          <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
-          <line x1="6" y1="2" x2="6" y2="4" />
-          <line x1="10" y1="2" x2="10" y2="4" />
-          <line x1="14" y1="2" x2="14" y2="4" />
-        </svg>
-        <span className="font-bold text-[15px] text-gray-900">
-          Buy Me Coffee
-        </span>
+        <img src="/coffee.svg" alt="coffee" />
+        <span className="font-bold text-xl text-gray-900">Buy Me Coffee</span>
       </div>
 
       <div className="flex items-center gap-2 cursor-pointer">
