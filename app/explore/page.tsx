@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import TopBar from "@/app/components/TopBar";
 import { PageButtons } from "@/app/components/PageButtons";
 import { Search, User, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import Header from "../components/Header";
 
 type Creator = {
   id: number;
@@ -125,7 +125,7 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <TopBar userName="Jake" />
+      <Header />
 
       <div className="flex flex-1">
         <PageButtons />
