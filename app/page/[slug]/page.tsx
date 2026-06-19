@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import TopBar from "@/app/components/TopBar";
-import Image from "next/image";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Supporter = {
   id: number;
   name: string;
-  avatarUrl?: string;
   initials?: string;
   amount: number;
   message?: string;
@@ -26,20 +24,17 @@ const MOCK_SUPPORTERS: Supporter[] = [
   {
     id: 2,
     name: "John Doe",
-    avatarUrl: "/avatars/john.png",
     amount: 5,
     message: "Thank you for being so awesome everyday!",
   },
   {
     id: 3,
     name: "Jake",
-    avatarUrl: "/avatars/jake.png",
     amount: 10,
   },
   {
     id: 4,
     name: "Guest",
-    avatarUrl: "/avatars/guest2.png",
     amount: 2,
     message:
       "Thank you for being so awesome everyday! You always manage to brighten up my day when I'm feeling down. Although $1 isn't that much money it's all I can contribute at the moment. When I become successful I will be sure to buy you more gifts and donations. Thank you again.",
@@ -51,33 +46,33 @@ const INITIAL_SHOW = 3;
 
 function AvatarCircle({
   name,
-  avatarUrl,
   initials,
   size = 36,
 }: {
   name: string;
-  avatarUrl?: string;
   initials?: string;
   size?: number;
 }) {
+  const letters =
+    initials ??
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
   return (
     <div
-      className="rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0"
+      className="rounded-full bg-gray-200 flex items-center justify-center shrink-0"
       style={{ width: size, height: size }}
     >
-      {avatarUrl ? (
-        <Image
-          src={avatarUrl}
-          alt={name}
-          width={size}
-          height={size}
-          className="object-cover w-full h-full"
-        />
-      ) : (
-        <span className="text-xs font-medium text-gray-500">
-          {initials ?? name.slice(0, 2).toUpperCase()}
-        </span>
-      )}
+      <span
+        className="font-medium text-gray-600"
+        style={{ fontSize: size * 0.35 }}
+      >
+        {letters}
+      </span>
     </div>
   );
 }
@@ -90,7 +85,7 @@ export default function ViewProfilePage() {
   );
   const [showAll, setShowAll] = useState(false);
 
-  const supporters = MOCK_SUPPORTERS; // replace with real fetch
+  const supporters = MOCK_SUPPORTERS;
   const visibleSupporters = showAll
     ? supporters
     : supporters.slice(0, INITIAL_SHOW);
@@ -104,37 +99,22 @@ export default function ViewProfilePage() {
     <div className="min-h-screen bg-white flex flex-col">
       <TopBar userName="Jake" />
 
-      {/* Banner */}
-      <div className="relative w-full h-52 bg-gray-900 overflow-hidden">
-        <Image
-          src="/banner-space.jpg"
-          alt="Profile banner"
-          fill
-          className="object-cover"
-          priority
-        />
-      </div>
+      {/* Banner — no image file needed */}
+      <div className="w-full h-52 bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900" />
 
-      {/* Two-column layout overlapping the banner */}
+      {/* Two-column layout */}
       <div className="max-w-5xl mx-auto w-full px-6 pb-16">
         <div className="grid grid-cols-[1fr_440px] gap-5 -mt-14 relative z-10">
-          {/* ── Left column ── */}
+          {/* Left column */}
           <div className="flex flex-col gap-4">
-            {/* Creator identity card */}
+            {/* Creator identity */}
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              {/* Name row with bottom divider */}
               <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-                <AvatarCircle
-                  name="Space ranger"
-                  avatarUrl="/avatars/space-ranger.png"
-                  size={44}
-                />
+                <AvatarCircle name="Space ranger" size={44} />
                 <span className="font-bold text-lg text-gray-900">
                   Space ranger
                 </span>
               </div>
-
-              {/* About section */}
               <div className="px-5 py-4">
                 <p className="text-sm font-semibold text-gray-900 mb-2">
                   About Space ranger
@@ -151,7 +131,7 @@ export default function ViewProfilePage() {
               </div>
             </div>
 
-            {/* Social media URL card */}
+            {/* Social media */}
             <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
               <p className="text-sm font-semibold text-gray-900 mb-1.5">
                 Social media URL
@@ -161,14 +141,13 @@ export default function ViewProfilePage() {
               </p>
             </div>
 
-            {/* Recent Supporters card */}
+            {/* Recent Supporters */}
             <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
               <p className="text-sm font-semibold text-gray-900 mb-4">
                 Recent Supporters
               </p>
 
               {supporters.length === 0 ? (
-                /* Empty state */
                 <div className="border border-gray-200 rounded-xl flex flex-col items-center justify-center gap-3 py-10">
                   <svg
                     width="28"
@@ -190,7 +169,6 @@ export default function ViewProfilePage() {
                       <div key={s.id} className="flex gap-3">
                         <AvatarCircle
                           name={s.name}
-                          avatarUrl={s.avatarUrl}
                           initials={s.initials}
                           size={36}
                         />
@@ -233,13 +211,12 @@ export default function ViewProfilePage() {
             </div>
           </div>
 
-          {/* ── Right column — Buy coffee form ── */}
+          {/* Right column — Buy coffee form */}
           <div className="bg-white border border-gray-200 rounded-xl p-5 h-fit">
             <h2 className="text-lg font-bold text-gray-900 mb-5">
               Buy Space ranger a Coffee
             </h2>
 
-            {/* Amount buttons */}
             <div className="mb-4">
               <p className="text-sm text-gray-700 mb-2">Select amount:</p>
               <div className="flex gap-2">
@@ -259,7 +236,6 @@ export default function ViewProfilePage() {
               </div>
             </div>
 
-            {/* Social URL */}
             <div className="mb-4">
               <label className="text-sm text-gray-700 block mb-1.5">
                 Enter BuyMeCoffee or social account URL:
@@ -273,7 +249,6 @@ export default function ViewProfilePage() {
               />
             </div>
 
-            {/* Special message */}
             <div className="mb-5">
               <label className="text-sm text-gray-700 block mb-1.5">
                 Special message:

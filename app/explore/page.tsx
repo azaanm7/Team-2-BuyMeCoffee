@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import TopBar from "@/app/components/TopBar";
 import { PageButtons } from "@/app/components/PageButtons";
 import { Search, User, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import Header from "../components/Header";
 
 type Creator = {
   id: number;
@@ -20,7 +20,7 @@ const MOCK_CREATORS: Creator[] = [
   {
     id: 1,
     name: "Space ranger",
-    avatarUrl: "/avatars/space-ranger.png",
+
     about:
       "All day, every day, we're watching, listening to, reading and absorbing politics. It's exhausting. We then report on what we've seen in a way that's as chill as possible. None of the sensationalism and division you'll find elsewhere. It's about cl...",
     socialMediaUrl: "https://buymeacoffee.com/baconpancakes1",
@@ -29,7 +29,7 @@ const MOCK_CREATORS: Creator[] = [
   {
     id: 2,
     name: "Purple monster",
-    avatarUrl: "/avatars/purple-monster.png",
+
     about:
       "Purple monster is for everyone. It handles all the painful experiences and helps people.",
     socialMediaUrl: "https://buymeacoffee.com/ifmonster23",
@@ -38,7 +38,6 @@ const MOCK_CREATORS: Creator[] = [
   {
     id: 3,
     name: "Alien Conspiracy",
-    avatarUrl: "/avatars/alien.png",
     about: "Show your support ❤ and buy me a coffee! & keep project a live!",
     socialMediaUrl: "https://buymeacoffee.com/roooaaaamm",
     slug: "roooaaaamm",
@@ -46,7 +45,6 @@ const MOCK_CREATORS: Creator[] = [
   {
     id: 4,
     name: "Teams",
-    avatarUrl: "/avatars/teams.png",
     about:
       'Joel 1:14 "Sanctify a fast, call a solemn assembly, gather the elders and all the inhabitants of the land. Cry out to the LORD."My purpose is clear: To seek God\'s face, every Thursday for all my Subscribers to align with His will, and to step into th...',
     socialMediaUrl: "https://buymeacoffee.com/kaka0",
@@ -55,7 +53,6 @@ const MOCK_CREATORS: Creator[] = [
   {
     id: 5,
     name: "Dragons1",
-    avatarUrl: "/avatars/dragons.png",
     about: "Hello",
     socialMediaUrl: "https://buymeacoffee.com/dragons1",
     slug: "dragons1",
@@ -125,7 +122,7 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <TopBar userName="Jake" />
+      <Header />
 
       <div className="flex flex-1">
         <PageButtons />
