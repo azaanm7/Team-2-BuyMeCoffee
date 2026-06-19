@@ -154,8 +154,7 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4">
-      {/* Profile card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 flex items-center justify-between">
+      <div className="rounded-xl border bg-card p-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
             <AvatarImage src="/avatar-jake.png" alt="Jake" />
@@ -180,8 +179,7 @@ export default function HomePage() {
         </Button>
       </div>
 
-      {/* Earnings card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-2">
+      <div className="rounded-xl border bg-card p-5 space-y-2">
         <div className="flex items-center gap-3">
           <p className="text-sm font-medium text-gray-900">Earnings</p>
           <Select value={period} onValueChange={setPeriod}>
@@ -200,12 +198,9 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Recent transactions — no outer border, sits on gray bg */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-gray-900">
-            Recent transactions
-          </p>
+      <div className="rounded-xl border bg-card">
+        <div className="flex items-center justify-between px-5 py-3 border-b">
+          <p className="text-sm font-semibold">Recent transactions</p>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
