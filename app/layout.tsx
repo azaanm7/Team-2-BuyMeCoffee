@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import SessionProviderWrapper from "./components/SessionProviderWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased bg-white text-[#1A1A1A]">
-        {children}
+        <SessionProviderWrapper>{children}</SessionProviderWrapper>
       </body>
     </html>
   );
