@@ -7,7 +7,7 @@ export const PageButtons = () => {
   const menuItems = [
     { label: "Home", href: "/" },
     { label: "Explore", href: "/explore" },
-    { label: "View page", href: "/view-page", isExternal: true },
+    { label: "View page", href: "/donation", isExternal: true },
     { label: "Account settings", href: "/settings" },
   ];
 
