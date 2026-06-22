@@ -90,7 +90,7 @@ export default function PaymentPage() {
     });
 
     if (res.ok) {
-      router.push("/home");
+      router.push("/");
     } else {
       const data = await res.json();
       console.error("Failed to save payment:", data.error);

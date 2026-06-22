@@ -5,7 +5,7 @@ import { SidebarItem } from "./SidebarItem";
 
 export const PageButtons = () => {
   const menuItems = [
-    { label: "Home", href: "/dashboard" },
+    { label: "Home", href: "/" },
     { label: "Explore", href: "/explore" },
     { label: "View page", href: "/view-page", isExternal: true },
     { label: "Account settings", href: "/settings" },
