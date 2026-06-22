@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id         String   @id @default(uuid())
+  name       String
+  about      String
+  socialUrl  String
+  photo      String?
+  coverImage String?
+  updatedAt  DateTime @updatedAt
+}
+
+model Donation {
+  id        String   @id @default(uuid())
+  name      String
+  avatar    String?
+  amount    Int
+  message   String   @default("")
+  createdAt DateTime @default(now())
+}
