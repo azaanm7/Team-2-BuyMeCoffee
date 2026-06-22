@@ -1,9 +1,9 @@
-import Sidebar from "@/app/components/Sidebar";
 import CreatorCard from "@/app/components/CreatorCard";
 import EarningsCard from "@/app/components/EarningsCard";
 import TransactionList from "@/app/components/TransactionList";
 import { Transaction } from "@/app/components/TransactionList";
-import TopBar from "./components/TopBar";
+import Header from "./components/Header";
+import { PageButtons } from "./components/PageButtons";
 
 const MOCK_EARNINGS = {
   "30d": 450,
@@ -66,10 +66,10 @@ const MOCK_TRANSACTIONS: Transaction[] = [
 
 export default function DashboardPage() {
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <TopBar userName="Jake" />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header />
+      <div className="flex flex-1">
+        <PageButtons />
         <main className="flex-1 p-6 max-w-3xl w-full mx-auto flex flex-col gap-5">
           <CreatorCard name="Jake" pageUrl="buymeacoffee.com/baconpancakes1" />
           <EarningsCard earnings={MOCK_EARNINGS} />
