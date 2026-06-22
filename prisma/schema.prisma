@@ -67,3 +67,10 @@ model Donation {
   recipientId           Int
   recipient             User     @relation("ReceivedDonations", fields: [recipientId], references: [id])
 }
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
