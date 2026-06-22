@@ -3,10 +3,12 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Header from "@/app/components/Header";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { update } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [photo, setPhoto] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export default function ProfilePage() {
     });
 
     if (res.ok) {
+      await update(); // refresh session so header shows new avatar/name
       router.push("/payment");
     } else {
       const data = await res.json();

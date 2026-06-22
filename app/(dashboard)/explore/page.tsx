@@ -5,7 +5,7 @@ import { PageButtons } from "@/app/components/PageButtons";
 import { Search, User, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import Header from "../components/Header";
+import Header from "../../components/Header";
 
 type Creator = {
   id: number;

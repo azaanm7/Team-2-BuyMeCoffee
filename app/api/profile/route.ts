@@ -17,36 +17,44 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const { name, about, avatarImage, socialMediaURL, successMessage } =
-    await req.json();
-  const userId = Number(session.user.id);
+    const { name, about, avatarImage, socialMediaURL, successMessage } =
+      await req.json();
+    const userId = Number(session.user.id);
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { profile: true },
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: true },
+    });
 
-  if (user?.profile) {
-    const updated = await prisma.profile.update({
-      where: { id: user.profile.id },
+    if (user?.profile) {
+      const updated = await prisma.profile.update({
+        where: { id: user.profile.id },
+        data: { name, about, avatarImage, socialMediaURL, successMessage },
+      });
+      return NextResponse.json(updated);
+    }
+
+    const profile = await prisma.profile.create({
       data: { name, about, avatarImage, socialMediaURL, successMessage },
     });
-    return NextResponse.json(updated);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { profileId: profile.id },
+    });
+
+    return NextResponse.json(profile, { status: 201 });
+  } catch (err) {
+    console.error("Profile PUT error:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
-
-  const profile = await prisma.profile.create({
-    data: { name, about, avatarImage, socialMediaURL, successMessage },
-  });
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: { profileId: profile.id },
-  });
-
-  return NextResponse.json(profile, { status: 201 });
 }

@@ -3,7 +3,8 @@
 
 import Header from "@/app/components/Header";
 import { PageButtons } from "@/app/components/PageButtons";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 const COUNTRIES = [
   "United States",
@@ -31,36 +32,43 @@ const YEARS = Array.from({ length: 10 }, (_, i) =>
 );
 
 export default function AccountSettings() {
+  const { update } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [loading, setLoading] = useState(true);
+
+  // Personal Info
   const [photo, setPhoto] = useState<string | null>(null);
-  const [name, setName] = useState("Jake");
-  const [about, setAbout] = useState(
-    "I'm a typical person who enjoys exploring different things. I also make music art as a hobby. Follow me along.",
-  );
-  const [socialUrl, setSocialUrl] = useState(
-    "https://buymeacoffee.com/baconpancakes1",
-  );
+  const [name, setName] = useState("");
+  const [about, setAbout] = useState("");
+  const [socialUrl, setSocialUrl] = useState("");
   const [personalErrors, setPersonalErrors] = useState<{
     name?: string;
     about?: string;
     socialUrl?: string;
   }>({});
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const [personalSaved, setPersonalSaved] = useState(false);
 
+  // Password
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordErrors, setPasswordErrors] = useState<{
     newPassword?: string;
     confirmPassword?: string;
+    form?: string;
   }>({});
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
 
-  const [country, setCountry] = useState("United States");
-  const [firstName, setFirstName] = useState("Jake");
-  const [lastName, setLastName] = useState("Mulligan");
+  // Payment
+  const [country, setCountry] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
-  const [month, setMonth] = useState("August");
-  const [year, setYear] = useState("2028");
-  const [cvc, setCvc] = useState("590");
+  const [month, setMonth] = useState("");
+  const [year, setYear] = useState("");
+  const [cvc, setCvc] = useState("");
   const [paymentErrors, setPaymentErrors] = useState<{
     country?: string;
     firstName?: string;
@@ -68,14 +76,62 @@ export default function AccountSettings() {
     cardNumber?: string;
     expiry?: string;
     cvc?: string;
+    form?: string;
   }>({});
+  const [paymentSaving, setPaymentSaving] = useState(false);
+  const [paymentSaved, setPaymentSaved] = useState(false);
 
-  const [confirmationMessage, setConfirmationMessage] = useState(
-    "Thank you for supporting me! It means a lot to have your support. It's a step toward creating a more inclusive and accepting community of artists.",
-  );
+  // Success page
+  const [confirmationMessage, setConfirmationMessage] = useState("");
   const [successErrors, setSuccessErrors] = useState<{
     confirmationMessage?: string;
   }>({});
+  const [successSaving, setSuccessSaving] = useState(false);
+  const [successSaved, setSuccessSaved] = useState(false);
+
+  // Load existing data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [profileRes, cardRes] = await Promise.all([
+          fetch("/api/profile"),
+          fetch("/api/bankcard"),
+        ]);
+
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          if (profile) {
+            setName(profile.name || "");
+            setAbout(profile.about || "");
+            setSocialUrl(profile.socialMediaURL || "");
+            setPhoto(profile.avatarImage || null);
+            setConfirmationMessage(profile.successMessage || "");
+          }
+        }
+
+        if (cardRes.ok) {
+          const card = await cardRes.json();
+          if (card) {
+            setCountry(card.country || "");
+            setFirstName(card.firstName || "");
+            setLastName(card.lastName || "");
+            setCardNumber(card.cardNumber || "");
+            if (card.expiryDate) {
+              const d = new Date(card.expiryDate);
+              setMonth(MONTHS[d.getMonth()]);
+              setYear(String(d.getFullYear()));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load account data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const formatCard = (val: string) =>
     val
@@ -137,43 +193,131 @@ export default function AccountSettings() {
 
   const handlePersonalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPersonalSaved(false);
     if (!validatePersonal()) return;
 
-    await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        about,
-        avatarImage: photo,
-        socialMediaURL: socialUrl,
-      }),
-    });
-  };
-
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validatePassword()) console.log("Password saved", { newPassword });
-  };
-
-  const handlePaymentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validatePayment())
-      console.log("Payment saved", {
-        country,
-        firstName,
-        lastName,
-        cardNumber,
-        month,
-        year,
-        cvc,
+    setPersonalSaving(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          about,
+          avatarImage: photo,
+          socialMediaURL: socialUrl,
+          successMessage: confirmationMessage,
+        }),
       });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setPersonalErrors({ name: data.error || "Failed to save" });
+        return;
+      }
+
+      await update(); // refresh session so header shows new avatar/name
+      setPersonalSaved(true);
+    } finally {
+      setPersonalSaving(false);
+    }
   };
 
-  const handleSuccessSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateSuccess())
-      console.log("Success page saved", { confirmationMessage });
+    setPasswordSaved(false);
+    if (!validatePassword()) return;
+
+    setPasswordSaving(true);
+    try {
+      const res = await fetch("/api/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPasswordErrors({ form: data.error || "Failed to update password" });
+        return;
+      }
+
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordSaved(true);
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPaymentSaved(false);
+    if (!validatePayment()) return;
+
+    setPaymentSaving(true);
+    try {
+      const monthIndex = String(MONTHS.indexOf(month) + 1).padStart(2, "0");
+
+      const res = await fetch("/api/bankcard", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          country,
+          firstName,
+          lastName,
+          cardNumber: cardNumber.replace(/-/g, ""),
+          month: monthIndex,
+          year,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setPaymentErrors({
+          form: data.error || "Failed to save payment details",
+        });
+        return;
+      }
+
+      setPaymentSaved(true);
+    } finally {
+      setPaymentSaving(false);
+    }
+  };
+
+  const handleSuccessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccessSaved(false);
+    if (!validateSuccess()) return;
+
+    setSuccessSaving(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          about,
+          avatarImage: photo,
+          socialMediaURL: socialUrl,
+          successMessage: confirmationMessage,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setSuccessErrors({
+          confirmationMessage: data.error || "Failed to save",
+        });
+        return;
+      }
+
+      setSuccessSaved(true);
+    } finally {
+      setSuccessSaving(false);
+    }
   };
 
   const inputClass = (error?: string) =>
@@ -188,14 +332,27 @@ export default function AccountSettings() {
       error ? "border-red-400" : "border-gray-300 focus:border-gray-500"
     }`;
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-sans">
+        <Header />
+        <div className="flex">
+          <PageButtons />
+          <main className="flex items-center justify-center w-screen min-h-screen">
+            <p className="text-sm text-gray-500">Loading account details...</p>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen  bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gray-50 font-sans">
       <Header />
 
       <div className="flex">
         <PageButtons />
 
-        {/* Main content offset for fixed sidebar */}
         <main className="flex flex-col px-8 py-8 min-h-screen w-screen items-center justify-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-6">
             My account
@@ -293,10 +450,14 @@ export default function AccountSettings() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors"
+                disabled={personalSaving}
+                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
               >
-                Save changes
+                {personalSaving ? "Saving..." : "Save changes"}
               </button>
+              {personalSaved && (
+                <p className="text-xs text-green-600">Saved!</p>
+              )}
             </form>
 
             {/* Password */}
@@ -308,6 +469,10 @@ export default function AccountSettings() {
               <h2 className="text-base font-semibold text-gray-900">
                 Set a new password
               </h2>
+
+              {passwordErrors.form && (
+                <p className="text-xs text-red-500">{passwordErrors.form}</p>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="newPassword" className="text-sm text-gray-700">
@@ -352,10 +517,14 @@ export default function AccountSettings() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors"
+                disabled={passwordSaving}
+                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
               >
-                Save changes
+                {passwordSaving ? "Saving..." : "Save changes"}
               </button>
+              {passwordSaved && (
+                <p className="text-xs text-green-600">Password updated!</p>
+              )}
             </form>
 
             {/* Payment */}
@@ -367,6 +536,10 @@ export default function AccountSettings() {
               <h2 className="text-base font-semibold text-gray-900">
                 Payment details
               </h2>
+
+              {paymentErrors.form && (
+                <p className="text-xs text-red-500">{paymentErrors.form}</p>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="country" className="text-sm text-gray-700">
@@ -522,10 +695,12 @@ export default function AccountSettings() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors"
+                disabled={paymentSaving}
+                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
               >
-                Save changes
+                {paymentSaving ? "Saving..." : "Save changes"}
               </button>
+              {paymentSaved && <p className="text-xs text-green-600">Saved!</p>}
             </form>
 
             {/* Success Page */}
@@ -561,10 +736,12 @@ export default function AccountSettings() {
 
               <button
                 type="submit"
-                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors"
+                disabled={successSaving}
+                className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
               >
-                Save changes
+                {successSaving ? "Saving..." : "Save changes"}
               </button>
+              {successSaved && <p className="text-xs text-green-600">Saved!</p>}
             </form>
           </div>
         </main>
