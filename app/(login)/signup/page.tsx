@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 export default function SignUpPage() {
@@ -77,6 +78,22 @@ export default function SignUpPage() {
 
       if (!res.ok) {
         setErrors({ email: data.error || "Something went wrong" });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // sign the user in right away so the session (and id) exist
+      // before we land on /createPro
+      const signInResult = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        setErrors({
+          email: "Account created, but login failed. Please try logging in.",
+        });
         setIsSubmitting(false);
         return;
       }
