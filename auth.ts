@@ -47,20 +47,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id!;
         token.name = user.name;
         token.image = user.image ?? null;
       }
 
-      if (trigger === "update" && token.id) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: Number(token.id) },
-          include: { profile: true },
-        });
-        token.name = dbUser?.profile?.name || dbUser?.username;
-        token.image = dbUser?.profile?.avatarImage ?? null;
+      if (trigger === "update" && session) {
+        token.name = session.name ?? token.name;
+        token.image = session.image ?? token.image;
       }
 
       return token;

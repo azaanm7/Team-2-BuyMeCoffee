@@ -88,6 +88,7 @@ export default function AccountSettings() {
   }>({});
   const [successSaving, setSuccessSaving] = useState(false);
   const [successSaved, setSuccessSaved] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Load existing data on mount
   useEffect(() => {
@@ -216,7 +217,10 @@ export default function AccountSettings() {
         return;
       }
 
-      await update(); // refresh session so header shows new avatar/name
+      await update({
+        name,
+        image: photo,
+      }); // refresh session so header shows new avatar/name
       setPersonalSaved(true);
     } finally {
       setPersonalSaving(false);
@@ -335,9 +339,7 @@ export default function AccountSettings() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans">
-        <Header />
         <div className="flex">
-          <PageButtons />
           <main className="flex items-center justify-center w-screen min-h-screen">
             <p className="text-sm text-gray-500">Loading account details...</p>
           </main>
@@ -474,18 +476,32 @@ export default function AccountSettings() {
                 <p className="text-xs text-red-500">{passwordErrors.form}</p>
               )}
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="newPassword" className="text-sm text-gray-700">
+              <div className="flex flex-col gap-1.5 ">
+                <label
+                  htmlFor="newPassword"
+                  className="text-sm text-gray-700 relative"
+                >
                   New password
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
                 </label>
                 <input
                   id="newPassword"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Enter new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className={inputClass(passwordErrors.newPassword)}
                 />
+
                 {passwordErrors.newPassword && (
                   <p className="text-xs text-red-500">
                     {passwordErrors.newPassword}
@@ -502,12 +518,13 @@ export default function AccountSettings() {
                 </label>
                 <input
                   id="confirmPassword"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Confirm password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className={inputClass(passwordErrors.confirmPassword)}
                 />
+
                 {passwordErrors.confirmPassword && (
                   <p className="text-xs text-red-500">
                     {passwordErrors.confirmPassword}
@@ -782,6 +799,41 @@ function ChevronIcon() {
       strokeLinejoin="round"
     >
       <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+function EyeIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
   );
 }
