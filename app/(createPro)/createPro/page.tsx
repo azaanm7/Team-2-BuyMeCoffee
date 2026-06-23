@@ -62,8 +62,7 @@ export default function ProfilePage() {
       await update(); // refresh session so header shows new avatar/name
       router.push("/payment");
     } else {
-      const data = await res.json();
-      console.error("Failed to save profile:", data.error);
+      await res.json();
     }
   };
 
@@ -174,7 +173,7 @@ export default function ProfilePage() {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-gray-300 hover:bg-gray-400 text-white text-sm font-medium rounded-md transition-colors"
+            className="w-full py-2.5 bg-black hover:bg-gray-400 text-white text-sm font-medium rounded-md transition-colors"
           >
             Continue
           </button>
