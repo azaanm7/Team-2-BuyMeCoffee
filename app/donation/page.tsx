@@ -8,6 +8,7 @@ import Header from "@/app/components/Header";
 const AMOUNTS = [1, 2, 5, 10] as const;
 
 type Profile = {
+  id: number;
   name: string;
   about: string;
   socialUrl: string;
@@ -25,12 +26,12 @@ type Donation = {
 };
 
 const DEFAULT_PROFILE: Profile = {
+  id: 1,
   name: "Jake",
   about:
     "I'm a typical person who enjoys exploring different things. I also make music art as a hobby. Follow me along.",
   socialUrl: "https://buymeacoffee.com/spacerulz44",
-  photo:
-    "https://images.unsplash.com/photo-1611689342806-0863700ce1e4?w=200&q=80",
+  photo: null,
   coverImage: null,
 };
 
@@ -52,8 +53,14 @@ export default function CoffeeProfilePage() {
 
   // Cover image
   const [pendingCover, setPendingCover] = useState<string | null>(null);
-  const [isSavingCover, setIsSavingCover] = useState(false);
+  const [uploadedCoverUrl, setUploadedCoverUrl] = useState<string | null>(null);
+  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
 
   // Profile edit modal
   const [showEditModal, setShowEditModal] = useState(false);
@@ -61,10 +68,26 @@ export default function CoffeeProfilePage() {
   const [editAbout, setEditAbout] = useState("");
   const [editSocialUrl, setEditSocialUrl] = useState("");
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
-  const [isSavingProfile] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    fetch("/api/profile")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && !data.error) {
+          setProfile({
+            id: data.id ?? 1,
+            name: data.name ?? DEFAULT_PROFILE.name,
+            about: data.about ?? DEFAULT_PROFILE.about,
+            socialUrl: data.socialMediaURL ?? DEFAULT_PROFILE.socialUrl,
+            photo: data.avatarImage || null,
+            coverImage: data.backgroundImage ?? null,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const canSupport = url.trim().length > 0;
 
@@ -80,24 +103,42 @@ export default function CoffeeProfilePage() {
     }
   }
 
-  function handleSupport() {
+  async function handleSupport() {
     if (!canSupport || isSubmitting) return;
     setIsSubmitting(true);
-    const donation: Donation = {
-      id: crypto.randomUUID(),
-      name: extractName(url),
-      avatar: null,
-      amount,
-      message,
-      createdAt: new Date().toISOString(),
-    };
-    setDonations((prev) => [donation, ...prev]);
-    setQrUrl(url);
-    setUrl("");
-    setMessage("");
-    setAmount(5);
-    setShowQR(true);
-    setIsSubmitting(false);
+    try {
+      const res = await fetch("/api/donation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          specialMessage: message || null,
+          socialURLOrBuyMeACoffee: url,
+          recipientId: profile.id,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const newDonation: Donation = {
+          id: data.id,
+          name: data.donor?.username ?? extractName(url),
+          avatar: data.donor?.profile?.avatarImage ?? null,
+          amount: data.amount,
+          message: data.specialMessage ?? "",
+          createdAt: data.createdAt,
+        };
+        setDonations((prev) => [newDonation, ...prev]);
+      }
+    } catch {
+      // network error — UI-д харуулахгүй
+    } finally {
+      setQrUrl(url);
+      setUrl("");
+      setMessage("");
+      setAmount(5);
+      setShowQR(true);
+      setIsSubmitting(false);
+    }
   }
 
   function handleQRClose() {
@@ -105,22 +146,67 @@ export default function CoffeeProfilePage() {
     router.push("/donation/complete");
   }
 
-  function handleCoverSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setPendingCover(reader.result as string);
-    reader.readAsDataURL(file);
+  async function uploadToCloudinary(file: File): Promise<{ url: string } | { error: string }> {
+    const body = new FormData();
+    body.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error ?? "Upload failed" };
+    return { url: data.url };
   }
 
-  function handleCoverSave() {
-    if (!pendingCover || isSavingCover) return;
-    setProfile((prev) => ({ ...prev, coverImage: pendingCover }));
+  async function handleCoverSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploadError(null);
+    setUploadedCoverUrl(null);
+    setPendingCover(URL.createObjectURL(file));
+    setIsUploadingCover(true);
+    try {
+      const result = await uploadToCloudinary(file);
+      if ("url" in result) {
+        setPendingCover(result.url);
+        setUploadedCoverUrl(result.url);
+      } else {
+        setPendingCover(null);
+        setCoverUploadError(result.error);
+      }
+    } catch {
+      setPendingCover(null);
+      setCoverUploadError("Upload failed — try again.");
+    } finally {
+      setIsUploadingCover(false);
+      if (coverInputRef.current) coverInputRef.current.value = "";
+    }
+  }
+
+  async function handleCoverSave() {
+    const urlToSave = uploadedCoverUrl;
+    if (!urlToSave || isUploadingCover) return;
+    setProfile((prev) => ({ ...prev, coverImage: urlToSave }));
     setPendingCover(null);
+    setUploadedCoverUrl(null);
+    const res = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: profile.name,
+        about: profile.about,
+        avatarImage: profile.photo ?? "",
+        socialMediaURL: profile.socialUrl,
+        backgroundImage: urlToSave,
+      }),
+    });
+    if (!res.ok) {
+      setCoverUploadError("Save failed — are you logged in?");
+      setProfile((prev) => ({ ...prev, coverImage: profile.coverImage }));
+    }
   }
 
   function handleCoverCancel() {
     setPendingCover(null);
+    setUploadedCoverUrl(null);
+    setCoverUploadError(null);
     if (coverInputRef.current) coverInputRef.current.value = "";
   }
 
@@ -129,27 +215,63 @@ export default function CoffeeProfilePage() {
     setEditAbout(profile.about);
     setEditSocialUrl(profile.socialUrl);
     setEditPhoto(profile.photo);
+    setUploadedPhotoUrl(null);
+    setPhotoUploadError(null);
     setShowEditModal(true);
   }
 
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setEditPhoto(reader.result as string);
-    reader.readAsDataURL(file);
+    setPhotoUploadError(null);
+    setUploadedPhotoUrl(null);
+    setEditPhoto(URL.createObjectURL(file));
+    setIsUploadingPhoto(true);
+    try {
+      const result = await uploadToCloudinary(file);
+      if ("url" in result) {
+        setEditPhoto(result.url);
+        setUploadedPhotoUrl(result.url);
+      } else {
+        setEditPhoto(profile.photo);
+        setPhotoUploadError(result.error);
+      }
+    } catch {
+      setEditPhoto(profile.photo);
+      setPhotoUploadError("Upload failed — try again.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   }
 
-  function handleProfileSave() {
+  async function handleProfileSave() {
     if (isSavingProfile) return;
-    setProfile((prev) => ({
-      ...prev,
-      name: editName,
-      about: editAbout,
-      socialUrl: editSocialUrl,
-      photo: editPhoto,
-    }));
-    setShowEditModal(false);
+    const avatarToSave = uploadedPhotoUrl ?? editPhoto;
+    setIsSavingProfile(true);
+    const res = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editName,
+        about: editAbout,
+        avatarImage: avatarToSave ?? "",
+        socialMediaURL: editSocialUrl,
+        backgroundImage: profile.coverImage,
+      }),
+    });
+    setIsSavingProfile(false);
+    if (res.ok) {
+      setProfile((prev) => ({
+        ...prev,
+        name: editName,
+        about: editAbout,
+        socialUrl: editSocialUrl,
+        photo: avatarToSave,
+      }));
+      setShowEditModal(false);
+    } else {
+      setPhotoUploadError("Save failed — are you logged in?");
+    }
   }
 
   const activeCover = pendingCover ?? profile.coverImage;
@@ -171,14 +293,19 @@ export default function CoffeeProfilePage() {
             : undefined
         }
       >
+        {coverUploadError && (
+          <p className="absolute left-1/2 top-4 -translate-x-1/2 rounded-lg bg-red-600 px-4 py-2 text-sm text-white shadow">
+            {coverUploadError}
+          </p>
+        )}
         {pendingCover ? (
           <div className="absolute right-6 top-6 flex gap-2">
             <button
               onClick={handleCoverSave}
-              disabled={isSavingCover}
+              disabled={isUploadingCover || !uploadedCoverUrl}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-60"
             >
-              Save changes
+              {isUploadingCover ? "Uploading..." : "Save changes"}
             </button>
             <button
               onClick={handleCoverCancel}
@@ -443,6 +570,12 @@ export default function CoffeeProfilePage() {
               className="hidden"
               onChange={handlePhotoSelect}
             />
+            {isUploadingPhoto && (
+              <p className="text-xs text-gray-500 mb-3">Uploading photo...</p>
+            )}
+            {photoUploadError && (
+              <p className="text-xs text-red-600 mb-3">{photoUploadError}</p>
+            )}
 
             <label className="block text-sm font-semibold text-gray-800 mb-1">
               Name
@@ -483,10 +616,10 @@ export default function CoffeeProfilePage() {
               </button>
               <button
                 onClick={handleProfileSave}
-                disabled={isSavingProfile}
+                disabled={isSavingProfile || isUploadingPhoto}
                 className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition disabled:opacity-60"
               >
-                {isSavingProfile ? "Saving..." : "Save changes"}
+                {isSavingProfile ? "Saving..." : isUploadingPhoto ? "Uploading..." : "Save changes"}
               </button>
             </div>
           </div>
