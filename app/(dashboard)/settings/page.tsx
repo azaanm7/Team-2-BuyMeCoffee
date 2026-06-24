@@ -4,7 +4,6 @@
 import Header from "@/app/components/Header";
 import { PageButtons } from "@/app/components/PageButtons";
 import { useState, useRef, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import AccountSettingsLoading from "./loading";
 
 const COUNTRIES = [
@@ -33,7 +32,6 @@ const YEARS = Array.from({ length: 10 }, (_, i) =>
 );
 
 export default function AccountSettings() {
-  const { update } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
@@ -238,10 +236,7 @@ export default function AccountSettings() {
         return;
       }
 
-      await update({
-        name,
-        image: photo,
-      }); // refresh session so header shows new avatar/name
+      window.dispatchEvent(new Event("profile:updated"));
       setPersonalSaved(true);
     } finally {
       setPersonalSaving(false);

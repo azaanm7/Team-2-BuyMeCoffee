@@ -18,8 +18,10 @@ type Earnings = {
 };
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  useSession();
   const [pageUrl, setPageUrl] = useState("");
+  const [creatorName, setCreatorName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const [earnings, setEarnings] = useState<Earnings>({
     "30d": 0,
     "90d": 0,
@@ -38,8 +40,12 @@ export default function DashboardPage() {
 
         if (profileRes.ok) {
           const profile = await profileRes.json();
-          if (profile?.socialMediaURL) {
-            setPageUrl(profile.socialMediaURL.replace(/^https?:\/\//, ""));
+          if (profile) {
+            if (profile.socialMediaURL) {
+              setPageUrl(profile.socialMediaURL.replace(/^https?:\/\//, ""));
+            }
+            setCreatorName(profile.name || "");
+            setAvatarUrl(profile.avatarImage || undefined);
           }
         }
 
@@ -65,9 +71,9 @@ export default function DashboardPage() {
         <PageButtons />
         <main className="flex-1 p-6 max-w-3xl w-full mx-auto flex flex-col gap-5">
           <CreatorCard
-            name={session?.user?.name || "Creator"}
+            name={creatorName || "Creator"}
             pageUrl={pageUrl || "buymeacoffee.com/yourpage"}
-            avatarUrl={session?.user?.image || undefined}
+            avatarUrl={avatarUrl}
           />
           {loading ? (
             <>
