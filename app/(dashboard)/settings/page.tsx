@@ -220,7 +220,6 @@ export default function AccountSettings() {
 
       await update({
         name,
-        image: photo,
       }); // refresh session so header shows new avatar/name
       setPersonalSaved(true);
     } finally {
