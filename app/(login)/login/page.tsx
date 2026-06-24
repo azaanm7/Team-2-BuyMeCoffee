@@ -32,13 +32,25 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (res?.error) {
+      if (res?.error) {
+        setErrors({ form: "Invalid email or password" });
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (err) {
+      console.warn("signIn client fetch hiccup (likely dev-mode only):", err);
+    }
+
+    // Verify via session regardless of whether signIn() threw above
+    const session = await fetch("/api/auth/session").then((r) => r.json());
+    if (!session?.user) {
       setErrors({ form: "Invalid email or password" });
       setIsSubmitting(false);
       return;
@@ -46,7 +58,6 @@ export default function LoginPage() {
 
     router.push("/");
   };
-
   return (
     <main className="min-h-screen flex relative">
       {/* Top-right signup button */}
