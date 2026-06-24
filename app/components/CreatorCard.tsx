@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
 
 interface CreatorCardProps {
   name: string;
@@ -13,8 +14,12 @@ export default function CreatorCard({
   pageUrl,
   avatarUrl,
 }: CreatorCardProps) {
+  const [copied, setCopied] = useState(false);
+
   const handleShare = () => {
     navigator.clipboard.writeText(`https://${pageUrl}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -22,12 +27,12 @@ export default function CreatorCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {avatarUrl ? (
-            <Image
+            <img
               src={avatarUrl}
               alt={name}
               width={44}
               height={44}
-              className="rounded-full object-cover"
+              className="w-11 h-11 rounded-full object-cover"
             />
           ) : (
             <div className="w-11 h-11 rounded-full bg-linear-to-br from-pink-400 to-violet-400" />
@@ -39,11 +44,40 @@ export default function CreatorCard({
         </div>
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
+            copied
+              ? "bg-green-600 text-white"
+              : "bg-gray-900 text-white hover:bg-gray-700"
+          }`}
         >
-          <span>⧉</span> Share page link
+          {copied ? (
+            <>
+              <CheckIcon /> Copied!
+            </>
+          ) : (
+            <>
+              <span>⧉</span> Share page link
+            </>
+          )}
         </button>
       </div>
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }

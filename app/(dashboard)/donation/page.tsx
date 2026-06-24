@@ -146,7 +146,9 @@ export default function CoffeeProfilePage() {
     router.push("/donation/complete");
   }
 
-  async function uploadToCloudinary(file: File): Promise<{ url: string } | { error: string }> {
+  async function uploadToCloudinary(
+    file: File,
+  ): Promise<{ url: string } | { error: string }> {
     const body = new FormData();
     body.append("file", file);
     const res = await fetch("/api/upload", { method: "POST", body });
@@ -341,7 +343,7 @@ export default function CoffeeProfilePage() {
       </div>
 
       {/* Content */}
-      <div className="relative mx-auto -mt-[110px] grid max-w-6xl grid-cols-1 gap-6 px-6 pb-16 lg:grid-cols-2 z-10">
+      <div className="relative mx-auto -mt-27.5 grid max-w-6xl grid-cols-1 gap-6 px-6 pb-16 lg:grid-cols-2 z-10">
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-6">
           {/* Profile card */}
@@ -619,7 +621,11 @@ export default function CoffeeProfilePage() {
                 disabled={isSavingProfile || isUploadingPhoto}
                 className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition disabled:opacity-60"
               >
-                {isSavingProfile ? "Saving..." : isUploadingPhoto ? "Uploading..." : "Save changes"}
+                {isSavingProfile
+                  ? "Saving..."
+                  : isUploadingPhoto
+                    ? "Uploading..."
+                    : "Save changes"}
               </button>
             </div>
           </div>

@@ -59,7 +59,10 @@ export default function ProfilePage() {
     });
 
     if (res.ok) {
-      await update(); // refresh session so header shows new avatar/name
+      await update({
+        name,
+        image: photo,
+      }); // refresh session so header shows new avatar/name
       router.push("/payment");
     } else {
       await res.json();
