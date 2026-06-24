@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Coffee, Heart } from "lucide-react";
 import Header from "@/app/components/Header";
+import { PageButtons } from "@/app/components/PageButtons";
 
 const AMOUNTS = [1, 2, 5, 10] as const;
 
@@ -280,8 +281,11 @@ export default function CoffeeProfilePage() {
   const displayedDonations = showAll ? donations : donations.slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       <Header />
+      <div className="flex flex-1">
+        <PageButtons />
+        <div className="flex-1 min-w-0 flex flex-col">
       {/* Cover */}
       <div
         className="relative h-95 w-full bg-[#40b495]"
@@ -662,6 +666,8 @@ export default function CoffeeProfilePage() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
