@@ -3,15 +3,18 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import Header from "@/app/components/Header";
+import { uploadImage } from "@/lib/imageClient";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { update } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // `photo` is only a LOCAL preview (blob URL). The file is uploaded to
+  // Cloudinary and saved to the DB only when the user presses Continue.
   const [photo, setPhoto] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
@@ -25,11 +28,11 @@ export default function ProfilePage() {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setPhoto(reader.result as string);
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    setErrors((prev) => ({ ...prev, photo: undefined }));
+    setPhotoFile(file);
+    setPhoto(URL.createObjectURL(file));
   };
 
   const validate = () => {
@@ -47,24 +50,38 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!validate()) return;
 
-    const res = await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        about,
-        avatarImage: photo,
-        socialMediaURL: socialUrl,
-      }),
-    });
+    setSubmitting(true);
+    try {
+      // Upload the locally-held image to Cloudinary first, then save the URL.
+      let avatarUrl = "";
+      if (photoFile) {
+        avatarUrl = await uploadImage(photoFile);
+      }
 
-    if (res.ok) {
-      await update({
-        name,
-      }); // refresh session so header shows new avatar/name
-      router.push("/payment");
-    } else {
-      await res.json();
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          about,
+          avatarImage: avatarUrl,
+          socialMediaURL: socialUrl,
+        }),
+      });
+
+      if (res.ok) {
+        window.dispatchEvent(new Event("profile:updated"));
+        router.push("/payment");
+      } else {
+        setErrors((prev) => ({ ...prev, photo: "Failed to save profile" }));
+      }
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        photo: err instanceof Error ? err.message : "Upload failed",
+      }));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -175,9 +192,10 @@ export default function ProfilePage() {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-black hover:bg-gray-400 text-white text-sm font-medium rounded-md transition-colors"
+            disabled={submitting}
+            className="w-full py-2.5 bg-black hover:bg-gray-400 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
           >
-            Continue
+            {submitting ? "Saving..." : "Continue"}
           </button>
         </form>
       </main>

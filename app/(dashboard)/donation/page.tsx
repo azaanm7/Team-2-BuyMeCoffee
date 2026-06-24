@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Heart } from "lucide-react";
 import Header from "@/app/components/Header";
-import { PageButtons } from "@/app/components/PageButtons";
+import { uploadImage, deleteImage } from "@/lib/imageClient";
 
 const AMOUNTS = [1, 2, 5, 10] as const;
 
@@ -52,23 +52,21 @@ export default function CoffeeProfilePage() {
   const [showQR, setShowQR] = useState(false);
   const [qrUrl, setQrUrl] = useState("");
 
-  // Cover image
+  // Cover image — picked locally, uploaded to Cloudinary only on Save.
   const [pendingCover, setPendingCover] = useState<string | null>(null);
-  const [uploadedCoverUrl, setUploadedCoverUrl] = useState<string | null>(null);
-  const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState<string | null>(null);
+  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null);
+  const [isSavingCover, setIsSavingCover] = useState(false);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
-  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
-
-  // Profile edit modal
+  // Profile edit modal — avatar is also uploaded only on Save.
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAbout, setEditAbout] = useState("");
   const [editSocialUrl, setEditSocialUrl] = useState("");
   const [editPhoto, setEditPhoto] = useState<string | null>(null);
+  const [editPhotoFile, setEditPhotoFile] = useState<File | null>(null);
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -147,68 +145,56 @@ export default function CoffeeProfilePage() {
     router.push("/donation/complete");
   }
 
-  async function uploadToCloudinary(
-    file: File,
-  ): Promise<{ url: string } | { error: string }> {
-    const body = new FormData();
-    body.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body });
-    const data = await res.json();
-    if (!res.ok) return { error: data.error ?? "Upload failed" };
-    return { url: data.url };
-  }
-
-  async function handleCoverSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleCoverSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCoverUploadError(null);
-    setUploadedCoverUrl(null);
+    setPendingCoverFile(file);
     setPendingCover(URL.createObjectURL(file));
-    setIsUploadingCover(true);
-    try {
-      const result = await uploadToCloudinary(file);
-      if ("url" in result) {
-        setPendingCover(result.url);
-        setUploadedCoverUrl(result.url);
-      } else {
-        setPendingCover(null);
-        setCoverUploadError(result.error);
-      }
-    } catch {
-      setPendingCover(null);
-      setCoverUploadError("Upload failed — try again.");
-    } finally {
-      setIsUploadingCover(false);
-      if (coverInputRef.current) coverInputRef.current.value = "";
-    }
+    if (coverInputRef.current) coverInputRef.current.value = "";
   }
 
   async function handleCoverSave() {
-    const urlToSave = uploadedCoverUrl;
-    if (!urlToSave || isUploadingCover) return;
-    setProfile((prev) => ({ ...prev, coverImage: urlToSave }));
-    setPendingCover(null);
-    setUploadedCoverUrl(null);
-    const res = await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: profile.name,
-        about: profile.about,
-        avatarImage: profile.photo ?? "",
-        socialMediaURL: profile.socialUrl,
-        backgroundImage: urlToSave,
-      }),
-    });
-    if (!res.ok) {
-      setCoverUploadError("Save failed — are you logged in?");
-      setProfile((prev) => ({ ...prev, coverImage: profile.coverImage }));
+    if (!pendingCoverFile || isSavingCover) return;
+    setIsSavingCover(true);
+    const oldCover = profile.coverImage;
+    try {
+      const newUrl = await uploadImage(pendingCoverFile);
+
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: profile.name,
+          about: profile.about,
+          avatarImage: profile.photo ?? "",
+          socialMediaURL: profile.socialUrl,
+          backgroundImage: newUrl,
+        }),
+      });
+      if (!res.ok) {
+        setCoverUploadError("Save failed — are you logged in?");
+        return;
+      }
+
+      // Replace succeeded — delete the previous cover from Cloudinary.
+      if (oldCover && oldCover !== newUrl) await deleteImage(oldCover);
+
+      setProfile((prev) => ({ ...prev, coverImage: newUrl }));
+      setPendingCover(null);
+      setPendingCoverFile(null);
+    } catch (err) {
+      setCoverUploadError(
+        err instanceof Error ? err.message : "Upload failed — try again.",
+      );
+    } finally {
+      setIsSavingCover(false);
     }
   }
 
   function handleCoverCancel() {
     setPendingCover(null);
-    setUploadedCoverUrl(null);
+    setPendingCoverFile(null);
     setCoverUploadError(null);
     if (coverInputRef.current) coverInputRef.current.value = "";
   }
@@ -218,52 +204,50 @@ export default function CoffeeProfilePage() {
     setEditAbout(profile.about);
     setEditSocialUrl(profile.socialUrl);
     setEditPhoto(profile.photo);
-    setUploadedPhotoUrl(null);
+    setEditPhotoFile(null);
     setPhotoUploadError(null);
     setShowEditModal(true);
   }
 
-  async function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setPhotoUploadError(null);
-    setUploadedPhotoUrl(null);
+    setEditPhotoFile(file);
     setEditPhoto(URL.createObjectURL(file));
-    setIsUploadingPhoto(true);
-    try {
-      const result = await uploadToCloudinary(file);
-      if ("url" in result) {
-        setEditPhoto(result.url);
-        setUploadedPhotoUrl(result.url);
-      } else {
-        setEditPhoto(profile.photo);
-        setPhotoUploadError(result.error);
-      }
-    } catch {
-      setEditPhoto(profile.photo);
-      setPhotoUploadError("Upload failed — try again.");
-    } finally {
-      setIsUploadingPhoto(false);
-    }
   }
 
   async function handleProfileSave() {
     if (isSavingProfile) return;
-    const avatarToSave = uploadedPhotoUrl ?? editPhoto;
     setIsSavingProfile(true);
-    const res = await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: editName,
-        about: editAbout,
-        avatarImage: avatarToSave ?? "",
-        socialMediaURL: editSocialUrl,
-        backgroundImage: profile.coverImage,
-      }),
-    });
-    setIsSavingProfile(false);
-    if (res.ok) {
+    const oldAvatar = profile.photo;
+    try {
+      let avatarToSave = profile.photo ?? "";
+      if (editPhotoFile) {
+        avatarToSave = await uploadImage(editPhotoFile);
+      }
+
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName,
+          about: editAbout,
+          avatarImage: avatarToSave,
+          socialMediaURL: editSocialUrl,
+          backgroundImage: profile.coverImage,
+        }),
+      });
+      if (!res.ok) {
+        setPhotoUploadError("Save failed — are you logged in?");
+        return;
+      }
+
+      // Avatar replaced — remove the old one from Cloudinary.
+      if (editPhotoFile && oldAvatar && oldAvatar !== avatarToSave) {
+        await deleteImage(oldAvatar);
+      }
+
       setProfile((prev) => ({
         ...prev,
         name: editName,
@@ -271,9 +255,15 @@ export default function CoffeeProfilePage() {
         socialUrl: editSocialUrl,
         photo: avatarToSave,
       }));
+      window.dispatchEvent(new Event("profile:updated"));
+      setEditPhotoFile(null);
       setShowEditModal(false);
-    } else {
-      setPhotoUploadError("Save failed — are you logged in?");
+    } catch (err) {
+      setPhotoUploadError(
+        err instanceof Error ? err.message : "Upload failed — try again.",
+      );
+    } finally {
+      setIsSavingProfile(false);
     }
   }
 
@@ -308,10 +298,10 @@ export default function CoffeeProfilePage() {
           <div className="absolute right-6 top-6 flex gap-2">
             <button
               onClick={handleCoverSave}
-              disabled={isUploadingCover || !uploadedCoverUrl}
+              disabled={isSavingCover}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-60"
             >
-              {isUploadingCover ? "Uploading..." : "Save changes"}
+              {isSavingCover ? "Saving..." : "Save changes"}
             </button>
             <button
               onClick={handleCoverCancel}
@@ -576,9 +566,6 @@ export default function CoffeeProfilePage() {
               className="hidden"
               onChange={handlePhotoSelect}
             />
-            {isUploadingPhoto && (
-              <p className="text-xs text-gray-500 mb-3">Uploading photo...</p>
-            )}
             {photoUploadError && (
               <p className="text-xs text-red-600 mb-3">{photoUploadError}</p>
             )}
@@ -622,14 +609,10 @@ export default function CoffeeProfilePage() {
               </button>
               <button
                 onClick={handleProfileSave}
-                disabled={isSavingProfile || isUploadingPhoto}
+                disabled={isSavingProfile}
                 className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition disabled:opacity-60"
               >
-                {isSavingProfile
-                  ? "Saving..."
-                  : isUploadingPhoto
-                    ? "Uploading..."
-                    : "Save changes"}
+                {isSavingProfile ? "Saving..." : "Save changes"}
               </button>
             </div>
           </div>

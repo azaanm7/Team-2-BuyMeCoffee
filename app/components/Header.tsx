@@ -4,9 +4,11 @@
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useUser } from "./UserProvider";
 
 const Header = () => {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
+  const { user } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -48,18 +50,18 @@ const Header = () => {
 
       {status === "loading" ? (
         <div className="w-24 h-9 bg-gray-100 rounded-xl animate-pulse" />
-      ) : session?.user ? (
+      ) : status === "authenticated" ? (
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
             className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-50 transition-colors"
           >
             <img
-              src={avatarUrl || "/avatar-placeholder.png"}
-              alt={session.user.name || "User"}
+              src={user?.avatarImage || "/avatar-placeholder.png"}
+              alt={user?.name || "User"}
               className="w-8 h-8 rounded-full object-cover"
             />
-            <span className="text-sm font-medium">{session.user.name}</span>
+            <span className="text-sm font-medium">{user?.name || "User"}</span>
             <ChevronIcon open={menuOpen} />
           </button>
 
