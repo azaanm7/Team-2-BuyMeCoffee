@@ -5,6 +5,7 @@ import Header from "@/app/components/Header";
 import { PageButtons } from "@/app/components/PageButtons";
 import { useState, useRef, useEffect } from "react";
 import AccountSettingsLoading from "./loading";
+import { uploadImage, deleteImage } from "@/lib/imageClient";
 
 const COUNTRIES = [
   "United States",
@@ -37,8 +38,14 @@ export default function AccountSettings() {
   const [loading, setLoading] = useState(true);
 
   // Personal Info
+  // `photo` is the current avatar (DB URL on load, or a local blob preview
+  // after picking a new file). `photoFile` holds the pending file that is only
+  // uploaded to Cloudinary when the user saves.
   const [photo, setPhoto] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  // The avatar URL currently persisted in the DB (used to delete the old image
+  // from Cloudinary when it gets replaced).
+  const [savedAvatar, setSavedAvatar] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
@@ -106,6 +113,7 @@ export default function AccountSettings() {
             setAbout(profile.about || "");
             setSocialUrl(profile.socialMediaURL || "");
             setPhoto(profile.avatarImage || null);
+            setSavedAvatar(profile.avatarImage || null);
             setConfirmationMessage(profile.successMessage || "");
           }
         }
@@ -141,32 +149,32 @@ export default function AccountSettings() {
       .replace(/(.{4})/g, "$1-")
       .replace(/-$/, "");
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setPersonalErrors((prev) => ({
-          ...prev,
-          name: data.error || "Image upload failed",
-        }));
-        return;
-      }
-      setPhoto(data.url);
-    } catch {
-      setPersonalErrors((prev) => ({ ...prev, name: "Image upload failed" }));
-    } finally {
-      setUploading(false);
+    setPhotoFile(file);
+    setPhoto(URL.createObjectURL(file));
+  };
+
+  // Uploads the pending file (if any) to Cloudinary and returns the URL to
+  // persist. If no new file was picked, keeps the existing avatar URL.
+  const resolveAvatarUrl = async (): Promise<string> => {
+    if (!photoFile) return photo ?? "";
+
+    const url = await uploadImage(photoFile);
+    setPhoto(url);
+    setPhotoFile(null);
+    return url;
+  };
+
+  // Deletes the previously-saved avatar from Cloudinary once a new one has been
+  // persisted, then remembers the new URL as the current saved avatar.
+  const cleanupOldAvatar = async (newUrl: string, hadNewFile: boolean) => {
+    if (hadNewFile && savedAvatar && savedAvatar !== newUrl) {
+      await deleteImage(savedAvatar);
     }
+    setSavedAvatar(newUrl || null);
   };
 
   const validatePersonal = () => {
@@ -218,13 +226,16 @@ export default function AccountSettings() {
 
     setPersonalSaving(true);
     try {
+      const hadNewFile = !!photoFile;
+      const avatarUrl = await resolveAvatarUrl();
+
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           about,
-          avatarImage: photo,
+          avatarImage: avatarUrl,
           socialMediaURL: socialUrl,
           successMessage: confirmationMessage,
         }),
@@ -236,8 +247,13 @@ export default function AccountSettings() {
         return;
       }
 
+      await cleanupOldAvatar(avatarUrl, hadNewFile);
       window.dispatchEvent(new Event("profile:updated"));
       setPersonalSaved(true);
+    } catch (err) {
+      setPersonalErrors({
+        name: err instanceof Error ? err.message : "Failed to save",
+      });
     } finally {
       setPersonalSaving(false);
     }
@@ -314,13 +330,16 @@ export default function AccountSettings() {
 
     setSuccessSaving(true);
     try {
+      const hadNewFile = !!photoFile;
+      const avatarUrl = await resolveAvatarUrl();
+
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           about,
-          avatarImage: photo,
+          avatarImage: avatarUrl,
           socialMediaURL: socialUrl,
           successMessage: confirmationMessage,
         }),
@@ -334,7 +353,14 @@ export default function AccountSettings() {
         return;
       }
 
+      await cleanupOldAvatar(avatarUrl, hadNewFile);
+      window.dispatchEvent(new Event("profile:updated"));
       setSuccessSaved(true);
+    } catch (err) {
+      setSuccessErrors({
+        confirmationMessage:
+          err instanceof Error ? err.message : "Failed to save",
+      });
     } finally {
       setSuccessSaving(false);
     }
@@ -391,18 +417,12 @@ export default function AccountSettings() {
                     onClick={() => fileInputRef.current?.click()}
                     className="w-20 h-20 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center bg-gray-100"
                   >
-                    {uploading ? (
-                      <span className="text-[10px] text-gray-500">
-                        Uploading...
-                      </span>
-                    ) : (
-                      photo && (
-                        <img
-                          src={photo}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      )
+                    {photo && (
+                      <img
+                        src={photo}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
                     )}
                   </button>
                   <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 border border-gray-200 pointer-events-none">
@@ -470,7 +490,7 @@ export default function AccountSettings() {
 
               <button
                 type="submit"
-                disabled={personalSaving || uploading}
+                disabled={personalSaving}
                 className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
               >
                 {personalSaving ? "Saving..." : "Save changes"}

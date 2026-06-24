@@ -4,13 +4,17 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
+import { uploadImage } from "@/lib/imageClient";
 
 export default function ProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // `photo` is only a LOCAL preview (blob URL). The file is uploaded to
+  // Cloudinary and saved to the DB only when the user presses Continue.
   const [photo, setPhoto] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
@@ -22,30 +26,13 @@ export default function ProfilePage() {
     socialUrl?: string;
   }>({});
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setErrors((prev) => ({ ...prev, photo: undefined }));
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrors((prev) => ({ ...prev, photo: data.error || "Upload failed" }));
-        return;
-      }
-      setPhoto(data.url);
-    } catch {
-      setErrors((prev) => ({ ...prev, photo: "Upload failed" }));
-    } finally {
-      setUploading(false);
-    }
+    setPhotoFile(file);
+    setPhoto(URL.createObjectURL(file));
   };
 
   const validate = () => {
@@ -63,22 +50,38 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!validate()) return;
 
-    const res = await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        about,
-        avatarImage: photo,
-        socialMediaURL: socialUrl,
-      }),
-    });
+    setSubmitting(true);
+    try {
+      // Upload the locally-held image to Cloudinary first, then save the URL.
+      let avatarUrl = "";
+      if (photoFile) {
+        avatarUrl = await uploadImage(photoFile);
+      }
 
-    if (res.ok) {
-      window.dispatchEvent(new Event("profile:updated"));
-      router.push("/payment");
-    } else {
-      await res.json();
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          about,
+          avatarImage: avatarUrl,
+          socialMediaURL: socialUrl,
+        }),
+      });
+
+      if (res.ok) {
+        window.dispatchEvent(new Event("profile:updated"));
+        router.push("/payment");
+      } else {
+        setErrors((prev) => ({ ...prev, photo: "Failed to save profile" }));
+      }
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        photo: err instanceof Error ? err.message : "Upload failed",
+      }));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -105,9 +108,7 @@ export default function ProfilePage() {
               className={`rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden bg-gray-100 transition-colors
               ${photo ? "border-transparent" : errors.photo ? "border-red-400" : "border-gray-300 hover:border-gray-400"}`}
             >
-              {uploading ? (
-                <span className="text-xs text-gray-500">Uploading...</span>
-              ) : photo ? (
+              {photo ? (
                 <img
                   src={photo}
                   alt="Profile"
@@ -191,10 +192,10 @@ export default function ProfilePage() {
 
           <button
             type="submit"
-            disabled={uploading}
+            disabled={submitting}
             className="w-full py-2.5 bg-black hover:bg-gray-400 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
           >
-            {uploading ? "Uploading..." : "Continue"}
+            {submitting ? "Saving..." : "Continue"}
           </button>
         </form>
       </main>
