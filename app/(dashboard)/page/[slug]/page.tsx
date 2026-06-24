@@ -100,7 +100,7 @@ export default function ViewProfilePage() {
       <TopBar userName="Jake" />
 
       {/* Banner — no image file needed */}
-      <div className="w-full h-52 bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900" />
+      <div className="w-full h-52 bg-linear-to-r from-blue-900 via-indigo-900 to-purple-900" />
 
       {/* Two-column layout */}
       <div className="max-w-5xl mx-auto w-full px-6 pb-16">
