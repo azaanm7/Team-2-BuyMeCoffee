@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Coffee, Heart } from "lucide-react";
+import { Camera, Heart } from "lucide-react";
 import Header from "@/app/components/Header";
 import { PageButtons } from "@/app/components/PageButtons";
 
@@ -487,7 +487,7 @@ export default function CoffeeProfilePage() {
                       : "border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
-                  <Coffee className="h-4 w-4" />${value}
+                  ☕ ${value}
                 </button>
               );
             })}

@@ -13,10 +13,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          console.log("Missing credentials");
-          return null;
-        }
+        if (!credentials?.email || !credentials?.password) return null;
 
         const { prisma } = await import("@/lib/prisma");
         const user = await prisma.user.findUnique({
@@ -24,17 +21,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { profile: true },
         });
 
-        if (!user) {
-          console.log("No user found for email:", credentials.email);
-          return null;
-        }
+        if (!user) return null;
 
         const isValid = await bcrypt.compare(
           credentials.password as string,
           user.password,
         );
-
-        console.log("Password valid:", isValid);
 
         if (!isValid) return null;
 
@@ -42,7 +34,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: String(user.id),
           email: user.email,
           name: user.profile?.name || user.username,
-          image: user.profile?.avatarImage || null,
         };
       },
     }),
@@ -52,12 +43,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id!;
         token.name = user.name;
-        token.image = user.image ?? null;
       }
 
       if (trigger === "update" && session) {
         token.name = session.name ?? token.name;
-        token.image = session.image ?? token.image;
       }
 
       return token;
@@ -66,7 +55,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;
-        session.user.image = token.image as string | null;
       }
       return session;
     },

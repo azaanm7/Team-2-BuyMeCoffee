@@ -5,6 +5,7 @@ import Header from "@/app/components/Header";
 import { PageButtons } from "@/app/components/PageButtons";
 import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import AccountSettingsLoading from "./loading";
 
 const COUNTRIES = [
   "United States",
@@ -219,7 +220,6 @@ export default function AccountSettings() {
 
       await update({
         name,
-        image: photo,
       }); // refresh session so header shows new avatar/name
       setPersonalSaved(true);
     } finally {
@@ -339,11 +339,7 @@ export default function AccountSettings() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans">
-        <div className="flex">
-          <main className="flex items-center justify-center w-screen min-h-screen">
-            <p className="text-sm text-gray-500">Loading account details...</p>
-          </main>
-        </div>
+        <AccountSettingsLoading />
       </div>
     );
   }
