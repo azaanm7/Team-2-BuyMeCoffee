@@ -40,6 +40,7 @@ export default function AccountSettings() {
 
   // Personal Info
   const [photo, setPhoto] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [name, setName] = useState("");
   const [about, setAbout] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
@@ -142,12 +143,31 @@ export default function AccountSettings() {
       .replace(/(.{4})/g, "$1-")
       .replace(/-$/, "");
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setPhoto(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPersonalErrors((prev) => ({
+          ...prev,
+          name: data.error || "Image upload failed",
+        }));
+        return;
+      }
+      setPhoto(data.url);
+    } catch {
+      setPersonalErrors((prev) => ({ ...prev, name: "Image upload failed" }));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -374,14 +394,20 @@ export default function AccountSettings() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-20 h-20 rounded-full overflow-hidden border border-gray-200 block bg-gray-100"
+                    className="w-20 h-20 rounded-full overflow-hidden border border-gray-200 flex items-center justify-center bg-gray-100"
                   >
-                    {photo && (
-                      <img
-                        src={photo}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
+                    {uploading ? (
+                      <span className="text-[10px] text-gray-500">
+                        Uploading...
+                      </span>
+                    ) : (
+                      photo && (
+                        <img
+                          src={photo}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      )
                     )}
                   </button>
                   <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 border border-gray-200 pointer-events-none">
@@ -449,7 +475,7 @@ export default function AccountSettings() {
 
               <button
                 type="submit"
-                disabled={personalSaving}
+                disabled={personalSaving || uploading}
                 className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
               >
                 {personalSaving ? "Saving..." : "Save changes"}

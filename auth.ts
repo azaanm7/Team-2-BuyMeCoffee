@@ -2,6 +2,16 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
+// Keep the JWT (and therefore the session cookie) small. Only short remote URLs
+// belong in the token — never base64 data URIs, which bloat the cookie past the
+// header size limit and cause HTTP 431 errors.
+function safeImage(image?: string | null): string | null {
+  if (!image) return null;
+  if (image.startsWith("data:")) return null;
+  if (image.length > 512) return null;
+  return image;
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
@@ -52,12 +62,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id!;
         token.name = user.name;
-        token.image = user.image ?? null;
+        token.image = safeImage(user.image);
       }
 
       if (trigger === "update" && session) {
         token.name = session.name ?? token.name;
-        token.image = session.image ?? token.image;
+        if (session.image !== undefined) {
+          token.image = safeImage(session.image);
+        }
       }
 
       return token;
