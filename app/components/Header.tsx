@@ -4,14 +4,12 @@
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useUser } from "./UserProvider";
 
 const Header = () => {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
+  const { user } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profile, setProfile] = useState<{
-    name: string | null;
-    avatarImage: string | null;
-  } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,35 +22,6 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Avatar/name are stored in the DB, not the session cookie. Fetch them here
-  // and re-fetch whenever the profile is updated elsewhere in the app.
-  useEffect(() => {
-    if (status !== "authenticated") {
-      setProfile(null);
-      return;
-    }
-
-    const loadProfile = async () => {
-      try {
-        const res = await fetch("/api/profile");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data) {
-          setProfile({
-            name: data.name ?? null,
-            avatarImage: data.avatarImage ?? null,
-          });
-        }
-      } catch {
-        // ignore — header will fall back to placeholder
-      }
-    };
-
-    loadProfile();
-    window.addEventListener("profile:updated", loadProfile);
-    return () => window.removeEventListener("profile:updated", loadProfile);
-  }, [status]);
-
   return (
     <div className="text-black w-screen flex justify-between items-center px-10 p-5 font-sans border-b border-gray-100">
       <div className="flex items-center gap-2">
@@ -62,20 +31,18 @@ const Header = () => {
 
       {status === "loading" ? (
         <div className="w-24 h-9 bg-gray-100 rounded-xl animate-pulse" />
-      ) : session?.user ? (
+      ) : status === "authenticated" ? (
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
             className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-50 transition-colors"
           >
             <img
-              src={profile?.avatarImage || "/avatar-placeholder.png"}
-              alt={profile?.name || "User"}
+              src={user?.avatarImage || "/avatar-placeholder.png"}
+              alt={user?.name || "User"}
               className="w-8 h-8 rounded-full object-cover"
             />
-            <span className="text-sm font-medium">
-              {profile?.name || "User"}
-            </span>
+            <span className="text-sm font-medium">{user?.name || "User"}</span>
             <ChevronIcon open={menuOpen} />
           </button>
 

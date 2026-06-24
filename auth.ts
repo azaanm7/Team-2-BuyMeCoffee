@@ -4,7 +4,14 @@ import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  session: { strategy: "jwt" },
+  // JWT acts as the access token (stored in the session cookie). `updateAge`
+  // makes it a rolling session: the token is silently re-issued/refreshed on
+  // activity, and fully expires after `maxAge` of inactivity.
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // refresh once per day
+  },
   pages: { signIn: "/login" },
   providers: [
     Credentials({

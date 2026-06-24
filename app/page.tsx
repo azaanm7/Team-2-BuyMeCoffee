@@ -6,7 +6,7 @@ import TransactionList from "@/app/components/TransactionList";
 import { Transaction } from "@/app/components/TransactionList";
 import Header from "./components/Header";
 import { PageButtons } from "./components/PageButtons";
-import { useSession } from "next-auth/react";
+import { useUser } from "@/app/components/UserProvider";
 import { useEffect, useState } from "react";
 import EarningsCardSkeleton from "@/app/components/EarningsCardSkeleton";
 import TransactionListSkeleton from "@/app/components/TransactionListSkeleton";
@@ -18,10 +18,7 @@ type Earnings = {
 };
 
 export default function DashboardPage() {
-  useSession();
-  const [pageUrl, setPageUrl] = useState("");
-  const [creatorName, setCreatorName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const { user } = useUser();
   const [earnings, setEarnings] = useState<Earnings>({
     "30d": 0,
     "90d": 0,
@@ -30,25 +27,14 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const pageUrl = user?.socialMediaURL
+    ? user.socialMediaURL.replace(/^https?:\/\//, "")
+    : "";
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [profileRes, dashboardRes] = await Promise.all([
-          fetch("/api/profile"),
-          fetch("/api/dashboard"),
-        ]);
-
-        if (profileRes.ok) {
-          const profile = await profileRes.json();
-          if (profile) {
-            if (profile.socialMediaURL) {
-              setPageUrl(profile.socialMediaURL.replace(/^https?:\/\//, ""));
-            }
-            setCreatorName(profile.name || "");
-            setAvatarUrl(profile.avatarImage || undefined);
-          }
-        }
-
+        const dashboardRes = await fetch("/api/dashboard");
         if (dashboardRes.ok) {
           const data = await dashboardRes.json();
           setEarnings(data.earnings);
@@ -71,9 +57,9 @@ export default function DashboardPage() {
         <PageButtons />
         <main className="flex-1 p-6 max-w-3xl w-full mx-auto flex flex-col gap-5">
           <CreatorCard
-            name={creatorName || "Creator"}
+            name={user?.name || "Creator"}
             pageUrl={pageUrl || "buymeacoffee.com/yourpage"}
-            avatarUrl={avatarUrl}
+            avatarUrl={user?.avatarImage || undefined}
           />
           {loading ? (
             <>
