@@ -8,7 +8,9 @@ import Link from "next/link";
 const Header = () => {
   const { data: session, status } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -18,6 +20,24 @@ const Header = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const loadAvatar = async () => {
+      try {
+        const res = await fetch("/api/profile");
+        if (res.ok) {
+          const profile = await res.json();
+          setAvatarUrl(profile?.avatarImage || null);
+        }
+      } catch (err) {
+        console.error("Failed to load avatar:", err);
+      }
+    };
+
+    loadAvatar();
+  }, [session?.user]);
 
   return (
     <div className="text-black w-screen flex justify-between items-center px-10 p-5 font-sans border-b border-gray-100">
@@ -35,7 +55,7 @@ const Header = () => {
             className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-50 transition-colors"
           >
             <img
-              src={session.user.image || "/avatar-placeholder.png"}
+              src={avatarUrl || "/avatar-placeholder.png"}
               alt={session.user.name || "User"}
               className="w-8 h-8 rounded-full object-cover"
             />

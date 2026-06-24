@@ -27,6 +27,7 @@ export default function DashboardPage() {
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -41,6 +42,7 @@ export default function DashboardPage() {
           if (profile?.socialMediaURL) {
             setPageUrl(profile.socialMediaURL.replace(/^https?:\/\//, ""));
           }
+          setAvatarUrl(profile?.avatarImage || null);
         }
 
         if (dashboardRes.ok) {
@@ -67,7 +69,7 @@ export default function DashboardPage() {
           <CreatorCard
             name={session?.user?.name || "Creator"}
             pageUrl={pageUrl || "buymeacoffee.com/yourpage"}
-            avatarUrl={session?.user?.image || undefined}
+            avatarUrl={avatarUrl || undefined}
           />
           {loading ? (
             <>
