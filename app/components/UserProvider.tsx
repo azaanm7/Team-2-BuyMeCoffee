@@ -30,6 +30,21 @@ const UserContext = createContext<UserContextValue>({
   refresh: async () => {},
 });
 
+async function fetchProfile(session: ReturnType<typeof useSession>["data"]) {
+  if (!session?.user) return null;
+
+  const res = await fetch("/api/profile");
+  const profile = res.ok ? await res.json().catch(() => null) : null;
+  return {
+    id: session.user.id,
+    email: session.user.email ?? null,
+    name: profile?.name ?? null,
+    avatarImage: profile?.avatarImage ?? null,
+    socialMediaURL: profile?.socialMediaURL ?? null,
+    successMessage: profile?.successMessage ?? null,
+  } satisfies AppUser;
+}
+
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<AppUser | null>(null);
@@ -46,28 +61,50 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/profile");
-      const profile = res.ok ? await res.json().catch(() => null) : null;
-      setUser({
-        id: session.user.id,
-        email: session.user.email ?? null,
-        name: profile?.name ?? null,
-        avatarImage: profile?.avatarImage ?? null,
-        socialMediaURL: profile?.socialMediaURL ?? null,
-        successMessage: profile?.successMessage ?? null,
-      });
+      const nextUser = await fetchProfile(session);
+      setUser(nextUser);
     } finally {
       setLoading(false);
     }
   }, [status, session]);
 
+  // Runs whenever auth status/session changes — this IS the synchronization
+  // with the external "auth state" system, so calling setState here is fine.
   useEffect(() => {
     if (status === "loading") return;
 
-    refresh();
+    let cancelled = false;
+
+    (async () => {
+      if (status !== "authenticated" || !session?.user) {
+        if (!cancelled) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const nextUser = await fetchProfile(session);
+        if (!cancelled) setUser(nextUser);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, session]);
+
+  // Separate effect: only for subscribing to the custom "profile:updated"
+  // event, which calls the stable `refresh` callback in response to an
+  // external signal (not synchronously on every render).
+  useEffect(() => {
     window.addEventListener("profile:updated", refresh);
     return () => window.removeEventListener("profile:updated", refresh);
-  }, [status, refresh]);
+  }, [refresh]);
 
   return (
     <UserContext.Provider value={{ user, loading, refresh }}>
