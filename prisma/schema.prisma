@@ -76,3 +76,12 @@ model PasswordResetToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model Transaction {
+  id          String   @id @default(uuid())
+  amount      Float
+  status      String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  paymentType String? // CARD, QPAY
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TopBar from "@/app/components/TopBar";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import Image from "next/image";
 
 type Supporter = {
   id: number;
@@ -84,6 +85,18 @@ export default function ViewProfilePage() {
     "Thank you for being so awesome everyday!",
   );
   const [showAll, setShowAll] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "COMPLETED">(
+    "PENDING",
+  );
+  const [showModal, setShowModal] = useState(false);
+  const [paymentTab, setPaymentTab] = useState<"CARD" | "QPAY">("CARD");
+  const [cardName, setCardName] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
 
   const supporters = MOCK_SUPPORTERS;
   const visibleSupporters = showAll
@@ -91,9 +104,72 @@ export default function ViewProfilePage() {
     : supporters.slice(0, INITIAL_SHOW);
   const hasMore = supporters.length > INITIAL_SHOW;
 
-  const handleSupport = () => {
-    console.log("Support submitted", { selectedAmount, socialUrl, message });
+  const handleSupport = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/payment/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: selectedAmount }),
+      });
+      if (!res.ok) throw new Error("Failed to generate payment");
+      const data = await res.json();
+      setQrCodeUrl(data.qrCodeUrl);
+      setTransactionId(data.transactionId);
+      setPaymentStatus("PENDING");
+      setPaymentTab("CARD");
+      setShowModal(true);
+    } finally {
+      setIsGenerating(false);
+    }
   };
+
+  const handleCardPayment = async () => {
+    if (!transactionId) return;
+    try {
+      await fetch("/api/payment/webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId, paymentType: "CARD" }),
+      });
+      setPaymentStatus("COMPLETED");
+    } catch {
+      console.error("Failed to complete card payment");
+    }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setQrCodeUrl(null);
+    setTransactionId(null);
+    setPaymentStatus("PENDING");
+    setPaymentTab("CARD");
+    setCardName("");
+    setCardNumber("");
+    setCardExpiry("");
+    setCardCvc("");
+  };
+
+  useEffect(() => {
+    if (!showModal || !transactionId || paymentStatus === "COMPLETED") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/payment/status?transactionId=${transactionId}`,
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === "COMPLETED") {
+          setPaymentStatus("COMPLETED");
+        }
+      } catch {
+        console.error("Failed to check payment status");
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [showModal, transactionId, paymentStatus]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -263,13 +339,165 @@ export default function ViewProfilePage() {
 
             <button
               onClick={handleSupport}
-              className="w-full py-3 bg-gray-900 hover:bg-gray-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              disabled={isGenerating}
+              className="w-full py-3 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
             >
-              Support
+              {isGenerating ? "Generating..." : "Support"}
             </button>
           </div>
         </div>
       </div>
+
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={closeModal}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeModal}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            {paymentStatus === "PENDING" ? (
+              <>
+                <h2 className="text-lg font-bold text-gray-900">
+                  Pay ${selectedAmount}
+                </h2>
+
+                {/* Tabs */}
+                <div className="mt-5 flex rounded-lg bg-gray-100 p-1">
+                  <button
+                    onClick={() => setPaymentTab("CARD")}
+                    className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+                      paymentTab === "CARD"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Card
+                  </button>
+                  <button
+                    onClick={() => setPaymentTab("QPAY")}
+                    className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+                      paymentTab === "QPAY"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Q Pay
+                  </button>
+                </div>
+
+                {paymentTab === "CARD" ? (
+                  <div className="mt-6 flex flex-col gap-3 text-left">
+                    <div>
+                      <label className="mb-1.5 block text-sm text-gray-700">
+                        Name on card
+                      </label>
+                      <input
+                        type="text"
+                        value={cardName}
+                        onChange={(e) => setCardName(e.target.value)}
+                        placeholder="John Doe"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition-colors placeholder-gray-400 focus:border-gray-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm text-gray-700">
+                        Card number
+                      </label>
+                      <input
+                        type="text"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(e.target.value)}
+                        placeholder="1234 5678 9012 3456"
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition-colors placeholder-gray-400 focus:border-gray-400"
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="mb-1.5 block text-sm text-gray-700">
+                          Expiry
+                        </label>
+                        <input
+                          type="text"
+                          value={cardExpiry}
+                          onChange={(e) => setCardExpiry(e.target.value)}
+                          placeholder="MM/YY"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition-colors placeholder-gray-400 focus:border-gray-400"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="mb-1.5 block text-sm text-gray-700">
+                          CVC
+                        </label>
+                        <input
+                          type="text"
+                          value={cardCvc}
+                          onChange={(e) => setCardCvc(e.target.value)}
+                          placeholder="123"
+                          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none transition-colors placeholder-gray-400 focus:border-gray-400"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleCardPayment}
+                      className="mt-2 w-full rounded-lg bg-gray-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-700"
+                    >
+                      Pay ${selectedAmount}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-4 text-sm text-gray-500">
+                      Scan this QR code with your phone to complete the payment.
+                    </p>
+                    {qrCodeUrl && (
+                      <Image
+                        src={qrCodeUrl}
+                        width={260}
+                        height={260}
+                        alt="Payment QR code"
+                        unoptimized
+                        className="mx-auto mt-6"
+                      />
+                    )}
+                    <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600" />
+                      Waiting for payment…
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-600">
+                  ✓
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Payment successful
+                </h2>
+                <p className="mt-2 text-gray-600">
+                  Thank you for your support of ${selectedAmount}!
+                </p>
+                <button
+                  onClick={closeModal}
+                  className="mt-6 w-full rounded-lg bg-gray-900 py-3 text-sm font-semibold text-white hover:bg-gray-700"
+                >
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
