@@ -19,9 +19,11 @@ export async function GET() {
     orderBy: { id: "desc" },
   });
 
+  type UserWithProfile = (typeof users)[number];
+
   const creators = users
-    .filter((u) => u.profile?.name)
-    .map((u) => ({
+    .filter((u: UserWithProfile) => u.profile?.name)
+    .map((u: UserWithProfile) => ({
       id: u.id,
       username: u.username,
       name: u.profile!.name,
