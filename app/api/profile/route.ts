@@ -23,8 +23,14 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, about, avatarImage, socialMediaURL, successMessage, backgroundImage } =
-      await req.json();
+    const {
+      name,
+      about,
+      avatarImage,
+      socialMediaURL,
+      successMessage,
+      backgroundImage,
+    } = await req.json();
     const userId = Number(session.user.id);
 
     const user = await prisma.user.findUnique({
@@ -35,13 +41,27 @@ export async function PUT(req: Request) {
     if (user?.profile) {
       const updated = await prisma.profile.update({
         where: { id: user.profile.id },
-        data: { name, about, avatarImage, socialMediaURL, successMessage, backgroundImage },
+        data: {
+          name,
+          about,
+          avatarImage,
+          socialMediaURL,
+          successMessage,
+          backgroundImage,
+        },
       });
       return NextResponse.json(updated);
     }
 
     const profile = await prisma.profile.create({
-      data: { name, about, avatarImage, socialMediaURL, successMessage, backgroundImage },
+      data: {
+        name,
+        about,
+        avatarImage,
+        socialMediaURL,
+        successMessage,
+        backgroundImage,
+      },
     });
 
     await prisma.user.update({
