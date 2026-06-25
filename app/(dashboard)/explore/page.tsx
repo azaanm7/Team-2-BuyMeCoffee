@@ -1,88 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageButtons } from "@/app/components/PageButtons";
 import { Search, User, ArrowUpRight } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
-import Header from "../../components/Header";
+import CreatorAvatar from "@/app/components/creator-page/CreatorAvatar";
+import Header from "@/app/components/Header";
 
 type Creator = {
   id: number;
+  username: string;
   name: string;
-  avatarUrl?: string;
   about: string;
-  socialMediaUrl: string;
-  slug: string;
+  avatarImage: string | null;
+  socialMediaURL: string;
 };
-
-const MOCK_CREATORS: Creator[] = [
-  {
-    id: 1,
-    name: "Space ranger",
-
-    about:
-      "All day, every day, we're watching, listening to, reading and absorbing politics. It's exhausting. We then report on what we've seen in a way that's as chill as possible. None of the sensationalism and division you'll find elsewhere. It's about cl...",
-    socialMediaUrl: "https://buymeacoffee.com/baconpancakes1",
-    slug: "baconpancakes1",
-  },
-  {
-    id: 2,
-    name: "Purple monster",
-
-    about:
-      "Purple monster is for everyone. It handles all the painful experiences and helps people.",
-    socialMediaUrl: "https://buymeacoffee.com/ifmonster23",
-    slug: "ifmonster23",
-  },
-  {
-    id: 3,
-    name: "Alien Conspiracy",
-    about: "Show your support ❤ and buy me a coffee! & keep project a live!",
-    socialMediaUrl: "https://buymeacoffee.com/roooaaaamm",
-    slug: "roooaaaamm",
-  },
-  {
-    id: 4,
-    name: "Teams",
-    about:
-      'Joel 1:14 "Sanctify a fast, call a solemn assembly, gather the elders and all the inhabitants of the land. Cry out to the LORD."My purpose is clear: To seek God\'s face, every Thursday for all my Subscribers to align with His will, and to step into th...',
-    socialMediaUrl: "https://buymeacoffee.com/kaka0",
-    slug: "kaka0",
-  },
-  {
-    id: 5,
-    name: "Dragons1",
-    about: "Hello",
-    socialMediaUrl: "https://buymeacoffee.com/dragons1",
-    slug: "dragons1",
-  },
-];
 
 function CreatorCard({ creator }: { creator: Creator }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5">
-      {/* Header row */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
-            {creator.avatarUrl ? (
-              <Image
-                src={creator.avatarUrl}
-                alt={creator.name}
-                width={40}
-                height={40}
-                className="object-cover w-full h-full"
-              />
-            ) : (
-              <User className="w-5 h-5 text-gray-400" />
-            )}
-          </div>
+          <CreatorAvatar
+            name={creator.name}
+            avatarUrl={creator.avatarImage}
+            size={40}
+          />
           <span className="font-semibold text-base text-gray-900">
             {creator.name}
           </span>
         </div>
-        <Link href={`/page/${creator.slug}`}>
+        <Link href={`/page/${creator.username}`}>
           <button className="flex items-center gap-1.5 text-sm text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
             View profile
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -90,7 +38,6 @@ function CreatorCard({ creator }: { creator: Creator }) {
         </Link>
       </div>
 
-      {/* Body: two columns */}
       <div className="grid grid-cols-2 gap-6 border-t border-gray-100 pt-4">
         <div>
           <p className="text-sm font-semibold text-gray-900 mb-1">
@@ -105,7 +52,7 @@ function CreatorCard({ creator }: { creator: Creator }) {
             Social media URL
           </p>
           <p className="text-sm text-gray-500 break-all">
-            {creator.socialMediaUrl}
+            {creator.socialMediaURL}
           </p>
         </div>
       </div>
@@ -115,8 +62,18 @@ function CreatorCard({ creator }: { creator: Creator }) {
 
 export default function ExplorePage() {
   const [search, setSearch] = useState("");
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = MOCK_CREATORS.filter((c) =>
+  useEffect(() => {
+    fetch("/api/creators")
+      .then((r) => r.json())
+      .then((data) => setCreators(data))
+      .catch(() => setCreators([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = creators.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()),
   );
 
@@ -132,7 +89,6 @@ export default function ExplorePage() {
             Explore creators
           </h1>
 
-          {/* Search */}
           <div className="relative w-52">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -144,8 +100,16 @@ export default function ExplorePage() {
             />
           </div>
 
-          {/* List or empty state */}
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-32 bg-white border border-gray-200 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-24">
               <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
                 <User className="w-6 h-6 text-gray-400" />
