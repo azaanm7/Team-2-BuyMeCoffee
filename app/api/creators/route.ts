@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/creators — public list of creators for the Explore page.
-// Only returns users who have completed a profile (name set), since a
-// bare signup with no profile isn't a "creator" yet.
 export async function GET() {
   const users = await prisma.user.findMany({
     where: { profile: { isNot: null } },

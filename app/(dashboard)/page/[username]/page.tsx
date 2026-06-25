@@ -123,8 +123,6 @@ export default function CreatorPublicPage() {
         ]);
       }
     } catch {
-      // Network error — still show the QR step below; donation may have
-      // failed but we don't want to block the visitor's flow on it.
     } finally {
       setQrUrl(url);
     }

@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/profile/[username] — public profile lookup for a creator's page.
-// No auth required: anyone (including logged-out visitors) can view a
-// creator's public page and donate to them.
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ username: string }> },
