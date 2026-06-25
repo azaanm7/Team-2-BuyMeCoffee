@@ -10,9 +10,7 @@ const Header = () => {
   const { status } = useSession();
   const { user } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -22,24 +20,6 @@ const Header = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const loadAvatar = async () => {
-      try {
-        const res = await fetch("/api/profile");
-        if (res.ok) {
-          const profile = await res.json();
-          setAvatarUrl(profile?.avatarImage || null);
-        }
-      } catch (err) {
-        console.error("Failed to load avatar:", err);
-      }
-    };
-
-    loadAvatar();
-  }, [session?.user]);
 
   return (
     <div className="text-black w-screen flex justify-between items-center px-10 p-5 font-sans border-b border-gray-100">
