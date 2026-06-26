@@ -26,8 +26,6 @@ export default function DashboardPage() {
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
   const pageUrl = user?.socialMediaURL
     ? user.socialMediaURL.replace(/^https?:\/\//, "")
     : "";

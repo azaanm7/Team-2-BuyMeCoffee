@@ -32,6 +32,11 @@ type DonationApiResult = {
   };
 };
 
+type PaymentState = {
+  qrCodeImage: string;
+  transactionId: string;
+};
+
 export default function CreatorPublicPage() {
   const params = useParams<{ username: string }>();
   const router = useRouter();
@@ -41,7 +46,7 @@ export default function CreatorPublicPage() {
   const [supporters, setSupporters] = useState<Supporter[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [payment, setPayment] = useState<PaymentState | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,7 +104,7 @@ export default function CreatorPublicPage() {
     if (!creator) return;
 
     try {
-      const res = await fetch("/api/donation", {
+      const donationRes = await fetch("/api/donation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,27 +114,40 @@ export default function CreatorPublicPage() {
           recipientId: creator.id,
         }),
       });
-      const data = await res.json();
-      if (res.ok) {
+      const donationData = await donationRes.json();
+      if (donationRes.ok) {
         setSupporters((prev) => [
           {
-            id: data.id,
-            name: data.donor?.username ?? "Guest",
-            avatarUrl: data.donor?.profile?.avatarImage ?? null,
-            amount: data.amount,
-            message: data.specialMessage,
+            id: donationData.id,
+            name: donationData.donor?.username ?? "Guest",
+            avatarUrl: donationData.donor?.profile?.avatarImage ?? null,
+            amount: donationData.amount,
+            message: donationData.specialMessage,
           },
           ...prev,
         ]);
       }
-    } catch {
-    } finally {
-      setQrUrl(url);
-    }
+
+      const paymentRes = await fetch("/api/payment/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const paymentData = await paymentRes.json();
+
+      setPayment({
+        qrCodeImage: paymentData.qrCodeUrl,
+        transactionId: paymentData.transactionId,
+      });
+    } catch {}
   }
 
-  function handleQrClose() {
-    setQrUrl(null);
+  function handleModalClose() {
+    setPayment(null);
+  }
+
+  function handlePaymentComplete() {
+    setPayment(null);
     router.push("/donation/complete");
   }
 
@@ -177,7 +195,14 @@ export default function CreatorPublicPage() {
         <BuyCoffeeForm creatorName={creator.name} onSubmit={handleDonate} />
       </div>
 
-      {qrUrl && <QrCodeModal targetUrl={qrUrl} onClose={handleQrClose} />}
+      {payment && (
+        <QrCodeModal
+          qrCodeImage={payment.qrCodeImage}
+          transactionId={payment.transactionId}
+          onClose={handleModalClose}
+          onComplete={handlePaymentComplete}
+        />
+      )}
     </div>
   );
 }
