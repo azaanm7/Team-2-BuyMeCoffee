@@ -8,6 +8,7 @@ import Header from "./components/Header";
 import { PageButtons } from "./components/PageButtons";
 import { useUser } from "@/app/components/UserProvider";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import EarningsCardSkeleton from "@/app/components/EarningsCardSkeleton";
 import TransactionListSkeleton from "@/app/components/TransactionListSkeleton";
 
@@ -18,7 +19,8 @@ type Earnings = {
 };
 
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
+  const router = useRouter();
   const [earnings, setEarnings] = useState<Earnings>({
     "30d": 0,
     "90d": 0,
@@ -31,6 +33,14 @@ export default function DashboardPage() {
     : "";
 
   useEffect(() => {
+    if (!userLoading && !user) {
+      router.push("/signup");
+    }
+  }, [userLoading, user, router]);
+
+  useEffect(() => {
+    if (!user) return;
+
     const loadData = async () => {
       try {
         const dashboardRes = await fetch("/api/dashboard");
@@ -47,7 +57,15 @@ export default function DashboardPage() {
     };
 
     loadData();
-  }, []);
+  }, [user]);
+
+  if (userLoading || (!user && !userLoading)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-400">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
