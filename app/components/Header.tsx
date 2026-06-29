@@ -3,8 +3,9 @@
 /* eslint-disable @next/next/no-img-element */
 import { useSession, signOut } from "next-auth/react";
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
+
 import { useUser } from "./UserProvider";
+import Link from "next/link";
 
 function AvatarImage({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
@@ -40,10 +41,10 @@ const Header = () => {
 
   return (
     <div className="text-black w-screen flex justify-between items-center px-10 p-5 font-sans border-b border-gray-100">
-      <div className="flex items-center gap-2">
+      <Link href="/" className="flex items-center gap-2">
         <img src="/coffee.svg" alt="coffee" />
         <p className="font-bold text-xl">Buy Me Coffee</p>
-      </div>
+      </Link>
 
       {status === "loading" ? (
         <div className="w-24 h-9 bg-gray-100 rounded-xl animate-pulse" />
