@@ -19,7 +19,7 @@ export default function CreatorCard({
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const displayUrl = `${origin.replace(/^https?:\/\//, "")}/page/${username}`;
-  const fullUrl = `${origin}/${username}`;
+  const fullUrl = `${origin}/page/${username}`;
 
   const handleShare = () => {
     navigator.clipboard.writeText(fullUrl);
