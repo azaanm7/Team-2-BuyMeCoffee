@@ -45,7 +45,7 @@ export default function CreatorCard({
           <div>
             <p className="font-medium text-sm">{name}</p>
             <Link
-              href={`/${username}`}
+              href={`/page/${username}`}
               target="_blank"
               className="text-xs text-gray-500 mt-0.5 hover:underline block"
             >
