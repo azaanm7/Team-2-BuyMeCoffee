@@ -1,154 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useParams } from "next/navigation";
 import Header from "@/app/components/Header";
 import CoverBanner from "@/app/components/creator-page/CoverBanner";
 import AboutCard from "@/app/components/creator-page/AboutCard";
 import SocialUrlCard from "@/app/components/creator-page/SocialUrlCard";
-import SupportersList, {
-  type Supporter,
-} from "@/app/components/creator-page/SupportersList";
+import SupportersList from "@/app/components/creator-page/SupportersList";
 import BuyCoffeeForm from "@/app/components/creator-page/BuyCoffeeForm";
-import QrCodeModal from "@/app/components/creator-page/QrCodeModal";
+import PaymentModal from "@/app/components/creator-page/PaymentModal";
+import DonationCompleteModal from "@/app/components/creator-page/DonationCompleteModal";
+import { useCreatorProfile } from "@/app/components/creator-page/UseCreatorProfile";
 
-type CreatorProfile = {
-  id: number;
-  username: string;
-  name: string;
-  about: string | null;
-  avatarImage: string | null;
-  backgroundImage: string | null;
-  socialMediaURL: string | null;
-};
-
-type DonationApiResult = {
-  id: string;
+type PendingDonation = {
   amount: number;
-  specialMessage: string | null;
-  donor: {
-    username: string;
-    profile: { avatarImage: string | null } | null;
-  };
-};
-
-type PaymentState = {
-  qrCodeImage: string;
-  transactionId: string;
+  url: string;
+  message: string;
 };
 
 export default function CreatorPublicPage() {
   const params = useParams<{ username: string }>();
-  const router = useRouter();
-  const username = params.username;
+  const { creator, supporters, loading, notFound, recordDonation } =
+    useCreatorProfile(params.username);
 
-  const [creator, setCreator] = useState<CreatorProfile | null>(null);
-  const [supporters, setSupporters] = useState<Supporter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [payment, setPayment] = useState<PaymentState | null>(null);
+  const [pendingDonation, setPendingDonation] =
+    useState<PendingDonation | null>(null);
+  const [showComplete, setShowComplete] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/profile/${username}`);
-        if (res.status === 404) {
-          if (!cancelled) setNotFound(true);
-          return;
-        }
-        const data = await res.json();
-        if (cancelled) return;
-
-        setCreator({
-          id: data.id,
-          username: data.username,
-          name: data.name,
-          about: data.about,
-          avatarImage: data.avatarImage,
-          backgroundImage: data.backgroundImage,
-          socialMediaURL: data.socialMediaURL,
-        });
-
-        setSupporters(
-          (data.donations as DonationApiResult[]).map((d) => ({
-            id: d.id,
-            name: d.donor.username,
-            avatarUrl: d.donor.profile?.avatarImage ?? null,
-            amount: d.amount,
-            message: d.specialMessage,
-          })),
-        );
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [username]);
-
-  async function handleDonate({
-    amount,
-    url,
-    message,
-  }: {
-    amount: number;
-    url: string;
-    message: string;
-  }) {
-    if (!creator) return;
-
-    try {
-      const donationRes = await fetch("/api/donation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount,
-          specialMessage: message || null,
-          socialURLOrBuyMeACoffee: url,
-          recipientId: creator.id,
-        }),
-      });
-      const donationData = await donationRes.json();
-      if (donationRes.ok) {
-        setSupporters((prev) => [
-          {
-            id: donationData.id,
-            name: donationData.donor?.username ?? "Guest",
-            avatarUrl: donationData.donor?.profile?.avatarImage ?? null,
-            amount: donationData.amount,
-            message: donationData.specialMessage,
-          },
-          ...prev,
-        ]);
-      }
-
-      const paymentRes = await fetch("/api/payment/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
-      });
-      const paymentData = await paymentRes.json();
-
-      setPayment({
-        qrCodeImage: paymentData.qrCodeUrl,
-        transactionId: paymentData.transactionId,
-      });
-    } catch {}
-  }
-
-  function handleModalClose() {
-    setPayment(null);
-  }
-
-  function handlePaymentComplete() {
-    setPayment(null);
-    router.push("/donation/complete");
+  async function handlePaymentCompleted() {
+    if (!pendingDonation) return;
+    await recordDonation(pendingDonation);
+    setPendingDonation(null);
+    setShowComplete(true);
   }
 
   if (loading) {
@@ -192,15 +75,28 @@ export default function CreatorPublicPage() {
           <SupportersList creatorName={creator.name} supporters={supporters} />
         </div>
 
-        <BuyCoffeeForm creatorName={creator.name} onSubmit={handleDonate} />
+        <BuyCoffeeForm
+          creatorName={creator.name}
+          onSubmit={setPendingDonation}
+        />
       </div>
 
-      {payment && (
-        <QrCodeModal
-          qrCodeImage={payment.qrCodeImage}
-          transactionId={payment.transactionId}
-          onClose={handleModalClose}
-          onComplete={handlePaymentComplete}
+      {pendingDonation && (
+        <PaymentModal
+          amount={pendingDonation.amount}
+          onClose={() => setPendingDonation(null)}
+          onCompleted={handlePaymentCompleted}
+        />
+      )}
+
+      {showComplete && (
+        <DonationCompleteModal
+          creatorName={creator.name}
+          creatorAvatarUrl={creator.avatarImage}
+          successMessage={
+            creator.successMessage ?? "Thank you for your support!"
+          }
+          onClose={() => setShowComplete(false)}
         />
       )}
     </div>
