@@ -11,6 +11,7 @@ import { useSession } from "next-auth/react";
 
 export type AppUser = {
   id: string;
+  username: string;
   email: string | null;
   name: string | null;
   avatarImage: string | null;
@@ -37,6 +38,7 @@ async function fetchProfile(session: ReturnType<typeof useSession>["data"]) {
   const profile = res.ok ? await res.json().catch(() => null) : null;
   return {
     id: session.user.id,
+    username: profile?.username ?? "",
     email: session.user.email ?? null,
     name: profile?.name ?? null,
     avatarImage: profile?.avatarImage ?? null,
@@ -44,7 +46,6 @@ async function fetchProfile(session: ReturnType<typeof useSession>["data"]) {
     successMessage: profile?.successMessage ?? null,
   } satisfies AppUser;
 }
-
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [user, setUser] = useState<AppUser | null>(null);

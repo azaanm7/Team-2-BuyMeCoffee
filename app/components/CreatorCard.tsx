@@ -2,22 +2,27 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface CreatorCardProps {
   name: string;
-  pageUrl: string;
+  username: string;
   avatarUrl?: string;
 }
 
 export default function CreatorCard({
   name,
-  pageUrl,
+  username,
   avatarUrl,
 }: CreatorCardProps) {
   const [copied, setCopied] = useState(false);
 
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const displayUrl = `${origin.replace(/^https?:\/\//, "")}/${username}`;
+  const fullUrl = `${origin}/${username}`;
+
   const handleShare = () => {
-    navigator.clipboard.writeText(`https://${pageUrl}`);
+    navigator.clipboard.writeText(fullUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -39,7 +44,13 @@ export default function CreatorCard({
           )}
           <div>
             <p className="font-medium text-sm">{name}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{pageUrl}</p>
+            <Link
+              href={`/${username}`}
+              target="_blank"
+              className="text-xs text-gray-500 mt-0.5 hover:underline block"
+            >
+              {displayUrl}
+            </Link>
           </div>
         </div>
         <button

@@ -13,7 +13,14 @@ export async function GET() {
     include: { profile: true },
   });
 
-  return NextResponse.json(user?.profile ?? null);
+  if (!user) {
+    return NextResponse.json(null);
+  }
+
+  return NextResponse.json({
+    ...user.profile,
+    username: user.username,
+  });
 }
 
 export async function PUT(req: Request) {

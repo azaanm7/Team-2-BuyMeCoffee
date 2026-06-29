@@ -28,8 +28,8 @@ export default function DashboardPage() {
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const pageUrl = user?.socialMediaURL
-    ? user.socialMediaURL.replace(/^https?:\/\//, "")
+  const pageUrl = user?.username
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/${user.username}`
     : "";
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function DashboardPage() {
         <main className="flex-1 p-6 max-w-3xl w-full mx-auto flex flex-col gap-5">
           <CreatorCard
             name={user?.name || "Creator"}
-            pageUrl={pageUrl || "buymeacoffee.com/yourpage"}
+            username={user?.username || "yourpage"}
             avatarUrl={user?.avatarImage || undefined}
           />
           {loading ? (
