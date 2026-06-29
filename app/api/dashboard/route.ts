@@ -68,6 +68,7 @@ export async function GET() {
       return {
         id: d.id,
         initials,
+        avatarUrl: d.donor.profile?.avatarImage || undefined,
         name: donorName,
         source: d.socialURLOrBuyMeACoffee || "buymeacoffee.com",
         amount: d.amount,
