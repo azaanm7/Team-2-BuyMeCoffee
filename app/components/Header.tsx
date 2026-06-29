@@ -6,6 +6,23 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useUser } from "./UserProvider";
 
+function AvatarImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
+      {!loaded && (
+        <div className="absolute inset-0 animate-pulse rounded-full bg-gray-200" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`w-8 h-8 rounded-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        onLoad={() => setLoaded(true)}
+      />
+    </div>
+  );
+}
+
 const Header = () => {
   const { status } = useSession();
   const { user } = useUser();
@@ -36,10 +53,9 @@ const Header = () => {
             onClick={() => setMenuOpen((v) => !v)}
             className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-50 transition-colors"
           >
-            <img
+            <AvatarImage
               src={user?.avatarImage || "/avatar-placeholder.png"}
               alt={user?.name || "User"}
-              className="w-8 h-8 rounded-full object-cover"
             />
             <span className="text-sm font-medium">{user?.name || "User"}</span>
             <ChevronIcon open={menuOpen} />
