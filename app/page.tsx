@@ -59,7 +59,7 @@ export default function DashboardPage() {
     loadData();
   }, [user]);
 
-  if (userLoading || (!user && !userLoading)) {
+  if (userLoading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center text-sm text-gray-400">
         Loading...
