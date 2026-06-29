@@ -28,9 +28,6 @@ export default function DashboardPage() {
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const pageUrl = user?.username
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/${user.username}`
-    : "";
 
   useEffect(() => {
     if (!userLoading && !user) {
