@@ -2,16 +2,16 @@
 
 import { useState, useRef, useEffect } from "react";
 
-const AMOUNTS = [1, 2, 5, 10];
-
-interface PageButtonsProps {
+interface AmountProps {
+  amounts: number[];
   onChange: (selected: number[]) => void;
 }
 
-export default function Amount({ onChange }: PageButtonsProps) {
+export default function Amount({ amounts, onChange }: AmountProps) {
   const [open, setOpen] = useState(false);
   const [checked, setChecked] = useState<number[]>([]);
   const ref = useRef<HTMLDivElement>(null);
+  const availableAmounts = [...new Set(amounts)].sort((a, b) => a - b);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -34,8 +34,11 @@ export default function Amount({ onChange }: PageButtonsProps) {
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+        type="button"
+        aria-expanded={open}
+        disabled={availableAmounts.length === 0}
+        onClick={() => setOpen((value) => !value)}
+        className="flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span className="text-xs">▾</span>
         Amount
@@ -47,7 +50,7 @@ export default function Amount({ onChange }: PageButtonsProps) {
       </button>
       {open && (
         <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded-lg shadow-md z-10 min-w-27.5 py-1">
-          {AMOUNTS.map((amount) => (
+          {availableAmounts.map((amount) => (
             <label
               key={amount}
               className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
@@ -58,7 +61,7 @@ export default function Amount({ onChange }: PageButtonsProps) {
                 onChange={() => toggle(amount)}
                 className="w-3.5 h-3.5 accent-gray-900 cursor-pointer"
               />
-              ${amount}
+              ${amount.toLocaleString()}
             </label>
           ))}
         </div>

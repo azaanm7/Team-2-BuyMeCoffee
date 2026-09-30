@@ -27,11 +27,14 @@ export async function GET() {
 
   const userId = Number(session.user.id);
   const now = new Date();
+  const chartStart = new Date(now);
+  chartStart.setUTCHours(0, 0, 0, 0);
+  chartStart.setUTCDate(chartStart.getUTCDate() - 89);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 
   try {
-    const [earnings30, earnings90, earningsAll, donations] = await Promise.all([
+    const [earnings30, earnings90, earningsAll, donations, supporters, chartDonations] = await Promise.all([
       prisma.donation.aggregate({
         where: { recipientId: userId, createdAt: { gte: thirtyDaysAgo } },
         _sum: { amount: true },
@@ -43,6 +46,7 @@ export async function GET() {
       prisma.donation.aggregate({
         where: { recipientId: userId },
         _sum: { amount: true },
+        _count: { _all: true },
       }),
       prisma.donation.findMany({
         where: { recipientId: userId },
@@ -54,7 +58,29 @@ export async function GET() {
           },
         },
       }),
+      prisma.donation.findMany({
+        where: { recipientId: userId },
+        distinct: ["donorId"],
+        select: { donorId: true },
+      }),
+      prisma.donation.findMany({
+        where: { recipientId: userId, createdAt: { gte: chartStart } },
+        select: { amount: true, createdAt: true },
+      }),
     ]);
+
+    const amountByDay = new Map<string, number>();
+    for (const donation of chartDonations) {
+      const day = donation.createdAt.toISOString().slice(0, 10);
+      amountByDay.set(day, (amountByDay.get(day) || 0) + donation.amount);
+    }
+
+    const dailyEarnings = Array.from({ length: 90 }, (_, index) => {
+      const date = new Date(chartStart);
+      date.setUTCDate(date.getUTCDate() + index);
+      const day = date.toISOString().slice(0, 10);
+      return { date: day, amount: amountByDay.get(day) || 0 };
+    });
 
     const transactions = donations.map((d) => {
       const donorName = d.donor.profile?.name || d.donor.username;
@@ -83,6 +109,11 @@ export async function GET() {
         "90d": earnings90._sum.amount || 0,
         all: earningsAll._sum.amount || 0,
       },
+      stats: {
+        supporters: supporters.length,
+        donations: earningsAll._count._all,
+      },
+      dailyEarnings,
       transactions,
     });
   } catch (err) {

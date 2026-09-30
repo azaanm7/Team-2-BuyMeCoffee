@@ -15,7 +15,7 @@ export const PageButtons = () => {
   const { status } = useSession();
 
   return (
-    <aside className="w-56 left-0 top-16 h-[calc(100vh-64px)] p-3 flex flex-col gap-1 font-sans">
+    <aside className="grid w-full shrink-0 grid-cols-2 gap-1 p-3 font-sans md:flex md:h-[calc(100vh-64px)] md:w-56 md:flex-col">
       {status === "loading"
         ? Array.from({ length: 4 }).map((_, i) => (
             <div

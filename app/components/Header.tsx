@@ -10,17 +10,36 @@ import ThemeToggle from "./ThemeToggle";
 
 function AvatarImage({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const initials =
+    alt
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "U";
+
   return (
     <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
-      {!loaded && (
+      {(!src || failed) && (
+        <span className="absolute inset-0 flex items-center justify-center rounded-full text-xs font-medium text-gray-600">
+          {initials}
+        </span>
+      )}
+      {src && !failed && !loaded && (
         <div className="absolute inset-0 animate-pulse rounded-full bg-gray-200" />
       )}
-      <img
-        src={src}
-        alt={alt}
-        className={`w-8 h-8 rounded-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
-        onLoad={() => setLoaded(true)}
-      />
+      {src && !failed && (
+        <img
+          src={src}
+          alt={alt}
+          className={`w-8 h-8 rounded-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+        />
+      )}
     </div>
   );
 }
@@ -41,7 +60,7 @@ const Header = () => {
   }, []);
 
   return (
-    <div className="text-black w-screen flex justify-between items-center px-10 p-5 font-sans border-b border-gray-100 dark:text-zinc-100">
+    <div className="text-black w-full flex justify-between items-center px-4 sm:px-10 p-4 sm:p-5 font-sans border-b border-gray-100 dark:text-zinc-100">
       <Link href="/" className="flex items-center gap-2">
         <img src="/coffee.svg" alt="coffee" />
         <p className="font-bold text-xl">Buy Me Coffee</p>
@@ -54,27 +73,48 @@ const Header = () => {
         ) : status === "authenticated" ? (
           <div className="relative" ref={menuRef}>
             <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
               onClick={() => setMenuOpen((v) => !v)}
               className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-50 transition-colors"
             >
               <AvatarImage
-                src={user?.avatarImage || "/avatar-placeholder.png"}
+                src={user?.avatarImage || ""}
                 alt={user?.name || "User"}
               />
-              <span className="text-sm font-medium">{user?.name || "User"}</span>
+              <span className="hidden max-w-32 truncate text-sm font-medium sm:inline">
+                {user?.name || "User"}
+              </span>
               <ChevronIcon open={menuOpen} />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10">
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10"
+              >
+                {user?.username && (
+                  <Link
+                    href={`/page/${encodeURIComponent(user.username)}`}
+                    role="menuitem"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    View profile
+                  </Link>
+                )}
                 <Link
                   href="/settings"
+                  role="menuitem"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => setMenuOpen(false)}
                 >
                   Account settings
                 </Link>
                 <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => signOut({ callbackUrl: "/login" })}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >

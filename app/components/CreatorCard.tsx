@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Check, Copy } from "lucide-react";
 
 interface CreatorCardProps {
   name: string;
@@ -15,22 +16,29 @@ export default function CreatorCard({
   username,
   avatarUrl,
 }: CreatorCardProps) {
-  const [copied, setCopied] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const displayUrl = `${origin.replace(/^https?:\/\//, "")}/page/${username}`;
-  const fullUrl = `${origin}/page/${username}`;
+  const pagePath = `/page/${encodeURIComponent(username)}`;
+  const displayUrl = `buymeacoffee.com${pagePath}`;
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(fullUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        new URL(pagePath, window.location.origin).toString(),
+      );
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
+    setTimeout(() => setCopyStatus("idle"), 2000);
   };
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -42,12 +50,12 @@ export default function CreatorCard({
           ) : (
             <div className="w-11 h-11 rounded-full bg-linear-to-br from-pink-400 to-violet-400" />
           )}
-          <div>
-            <p className="font-medium text-sm">{name}</p>
+          <div className="min-w-0">
+            <p className="font-medium text-sm truncate">{name}</p>
             <Link
-              href={`/page/${username}`}
+              href={pagePath}
               target="_blank"
-              className="text-xs text-gray-500 mt-0.5 hover:underline block"
+              className="mt-0.5 block truncate text-xs text-gray-500 hover:underline"
             >
               {displayUrl}
             </Link>
@@ -55,40 +63,27 @@ export default function CreatorCard({
         </div>
         <button
           onClick={handleShare}
-          className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
-            copied
+          className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors sm:w-auto ${
+            copyStatus === "copied"
               ? "bg-green-600 text-white"
-              : "bg-gray-900 text-white hover:bg-gray-700"
+              : copyStatus === "failed"
+                ? "bg-red-600 text-white"
+                : "bg-gray-900 text-white hover:bg-gray-700"
           }`}
         >
-          {copied ? (
+          {copyStatus === "copied" ? (
             <>
-              <CheckIcon /> Copied!
+              <Check size={15} aria-hidden="true" /> Copied!
             </>
+          ) : copyStatus === "failed" ? (
+            "Copy failed"
           ) : (
             <>
-              <span>⧉</span> Share page link
+              <Copy size={15} aria-hidden="true" /> Share page link
             </>
           )}
         </button>
       </div>
     </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
   );
 }
