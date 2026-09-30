@@ -5,7 +5,7 @@ import { useState } from "react";
 import Amount from "./Amount";
 
 export interface Transaction {
-  id: number;
+  id: number | string;
   name: string;
   source: string;
   amount: number;
@@ -42,9 +42,11 @@ function Avatar({ txn }: { txn: Transaction }) {
     "from-emerald-400 to-cyan-400",
     "from-orange-400 to-pink-400",
   ];
+  const gradientIndex =
+    typeof txn.id === "number" ? txn.id : txn.id.charCodeAt(0);
   return (
     <div
-      className={`w-8 h-8 rounded-full bg-linear-to-br ${gradients[txn.id % gradients.length]} shrink-0`}
+      className={`w-8 h-8 rounded-full bg-linear-to-br ${gradients[gradientIndex % gradients.length]} shrink-0`}
     />
   );
 }
@@ -63,7 +65,7 @@ function TransactionItem({ txn }: { txn: Transaction }) {
           <p className="text-xs text-gray-400 mt-0.5 truncate">{txn.source}</p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-sm font-medium">+ ${txn.amount}</p>
+          <p className="text-sm font-medium">+ ${txn.amount.toLocaleString()}</p>
           <p className="text-xs text-gray-400 mt-0.5">{txn.time}</p>
         </div>
       </div>
@@ -95,12 +97,13 @@ export default function TransactionList({
     activeFilters.length === 0
       ? transactions
       : transactions.filter((t) => activeFilters.includes(t.amount));
+  const availableAmounts = [...new Set(transactions.map((txn) => txn.amount))];
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-medium">Recent transactions</h2>
-        <Amount onChange={setActiveFilters} />
+        <Amount amounts={availableAmounts} onChange={setActiveFilters} />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl px-6 py-1">
@@ -110,10 +113,14 @@ export default function TransactionList({
               <span className="text-gray-400 text-xl">♡</span>
             </div>
             <p className="text-sm font-medium text-gray-800">
-              You don&apos;t have any supporters yet
+              {transactions.length === 0
+                ? "No transactions yet"
+                : "No transactions match this amount"}
             </p>
             <p className="text-sm text-gray-400">
-              Share your page with your audience to get started.
+              {transactions.length === 0
+                ? "Share your page with your audience to get started."
+                : "Try changing or clearing your amount filter."}
             </p>
           </div>
         ) : (
