@@ -49,8 +49,9 @@
 }
 
 :root {
+  color-scheme: light;
   --background: oklch(1 0 0);
-  --foreground: oklch(100% 0.00011 271.152);
+  --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -84,6 +85,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -127,4 +129,111 @@
   html {
     @apply font-sans;
   }
+}
+
+.dark [class~="bg-white"] {
+  background-color: #18181b;
+}
+
+.dark [class~="bg-gray-50"] {
+  background-color: #09090b;
+}
+
+.dark [class~="bg-gray-100"],
+.dark [class~="bg-zinc-100"] {
+  background-color: #27272a;
+}
+
+.dark [class~="bg-gray-200"] {
+  background-color: #3f3f46;
+}
+
+.dark [class~="bg-gray-300"] {
+  background-color: #52525b;
+}
+
+.dark [class~="bg-gray-700"],
+.dark [class~="hover:bg-gray-400"]:hover,
+.dark [class~="hover:bg-gray-700"]:hover {
+  background-color: #3f3f46;
+}
+
+.dark [class~="bg-gray-800"],
+.dark [class~="hover:bg-gray-50"]:hover,
+.dark [class~="hover:bg-gray-100"]:hover,
+.dark [class~="hover:bg-gray-800"]:hover {
+  background-color: #27272a;
+}
+
+.dark [class~="hover:bg-gray-200"]:hover {
+  background-color: #3f3f46;
+}
+
+.dark [class~="text-black"],
+.dark [class~="text-gray-900"] {
+  color: #f4f4f5;
+}
+
+.dark [class~="text-gray-800"] {
+  color: #e4e4e7;
+}
+
+.dark [class~="text-gray-700"] {
+  color: #d4d4d8;
+}
+
+.dark [class~="text-gray-600"],
+.dark [class~="text-gray-500"] {
+  color: #a1a1aa;
+}
+
+.dark [class~="text-gray-400"] {
+  color: #a1a1aa;
+}
+
+.dark [class~="hover:text-gray-600"]:hover,
+.dark [class~="hover:text-gray-700"]:hover,
+.dark [class~="hover:text-gray-800"]:hover {
+  color: #e4e4e7;
+}
+
+.dark [class~="border-gray-100"],
+.dark [class~="border-gray-200"] {
+  border-color: #3f3f46;
+}
+
+.dark [class~="border-gray-300"] {
+  border-color: #52525b;
+}
+
+.dark [class~="border-gray-900"],
+.dark [class~="focus:border-gray-900"]:focus {
+  border-color: #a1a1aa;
+}
+
+.dark [class~="bg-[#F1F1F2]"] {
+  background-color: #27272a;
+}
+
+.dark [class~="text-[#1A1A1A]"],
+.dark [class~="hover:text-[#1A1A1A]"]:hover {
+  color: #f4f4f5;
+}
+
+.dark [class~="text-[#666666]"],
+.dark [class~="text-[#999999]"] {
+  color: #a1a1aa;
+}
+
+.dark [class~="hover:bg-[#F8F8F9]"]:hover {
+  background-color: #27272a;
+}
+
+.dark [class~="placeholder-gray-400"]::placeholder {
+  color: #a1a1aa;
+}
+
+.dark [class~="bg-amber-400"] [class~="text-gray-900"],
+.dark [class~="bg-amber-400"] [class~="text-gray-800"] {
+  color: #27200f;
 }

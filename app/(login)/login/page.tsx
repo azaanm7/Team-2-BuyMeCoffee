@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
+import ThemeToggle from "@/app/components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,13 +60,15 @@ export default function LoginPage() {
   };
   return (
     <main className="min-h-screen flex relative">
-      {/* Top-right signup button */}
-      <Link
-        href="/signup"
-        className="absolute top-5 right-6 z-10 px-4 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-      >
-        Sign up
-      </Link>
+      <div className="absolute top-5 right-6 z-10 flex items-center gap-2">
+        <ThemeToggle />
+        <Link
+          href="/signup"
+          className="px-4 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+        >
+          Sign up
+        </Link>
+      </div>
 
       {/* Left panel */}
       <div className="hidden md:flex flex-col items-center justify-center w-1/2 bg-amber-400 px-10">

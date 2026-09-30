@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 
 import { useUser } from "./UserProvider";
 import Link from "next/link";
+import ThemeToggle from "./ThemeToggle";
 
 function AvatarImage({ src, alt }: { src: string; alt: string }) {
   const [loaded, setLoaded] = useState(false);
@@ -40,51 +41,54 @@ const Header = () => {
   }, []);
 
   return (
-    <div className="text-black w-screen flex justify-between items-center px-10 p-5 font-sans border-b border-gray-100">
+    <div className="text-black w-screen flex justify-between items-center px-10 p-5 font-sans border-b border-gray-100 dark:text-zinc-100">
       <Link href="/" className="flex items-center gap-2">
         <img src="/coffee.svg" alt="coffee" />
         <p className="font-bold text-xl">Buy Me Coffee</p>
       </Link>
 
-      {status === "loading" ? (
-        <div className="w-24 h-9 bg-gray-100 rounded-xl animate-pulse" />
-      ) : status === "authenticated" ? (
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <AvatarImage
-              src={user?.avatarImage || "/avatar-placeholder.png"}
-              alt={user?.name || "User"}
-            />
-            <span className="text-sm font-medium">{user?.name || "User"}</span>
-            <ChevronIcon open={menuOpen} />
-          </button>
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+        {status === "loading" ? (
+          <div className="w-24 h-9 bg-gray-100 rounded-xl animate-pulse" />
+        ) : status === "authenticated" ? (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-gray-50 transition-colors"
+            >
+              <AvatarImage
+                src={user?.avatarImage || "/avatar-placeholder.png"}
+                alt={user?.name || "User"}
+              />
+              <span className="text-sm font-medium">{user?.name || "User"}</span>
+              <ChevronIcon open={menuOpen} />
+            </button>
 
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10">
-              <Link
-                href="/settings"
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                onClick={() => setMenuOpen(false)}
-              >
-                Account settings
-              </Link>
-              <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Log out
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <Link href="/login">
-          <button className="bg-zinc-100 rounded-xl p-3">Log in</button>
-        </Link>
-      )}
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10">
+                <Link
+                  href="/settings"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Account settings
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Log out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link href="/login">
+            <button className="bg-zinc-100 rounded-xl p-3">Log in</button>
+          </Link>
+        )}
+      </div>
     </div>
   );
 };
